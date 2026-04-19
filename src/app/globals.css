@@ -8,6 +8,17 @@
 
 html,
 body {
-  background: #f7f8fa;
-  color: #1a1a1a;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: #faf8ff;
+  color: #191b23;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  font-family: "Material Symbols Outlined";
+}
+
+.text-editorial-display {
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }

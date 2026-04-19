@@ -1,21 +1,48 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { formatCondition, daysUntil, formatRelative } from "@/lib/format";
+import { formatCondition, daysUntil } from "@/lib/format";
 import Link from "next/link";
+
+function iconFor(itemName: string): string {
+  const n = itemName.toLowerCase();
+  if (n.includes("chair") || n.includes("desk") || n.includes("furniture"))
+    return "chair_alt";
+  if (n.includes("motor") || n.includes("pump")) return "settings";
+  if (n.includes("cable") || n.includes("wire") || n.includes("electric"))
+    return "bolt";
+  if (n.includes("tool")) return "construction";
+  if (n.includes("pallet") || n.includes("box")) return "inventory_2";
+  if (n.includes("monitor") || n.includes("screen") || n.includes("computer"))
+    return "monitor";
+  return "category";
+}
+
+function conditionBadge(cond: string) {
+  switch (cond) {
+    case "LIKE_NEW":
+      return { label: "Excellent Condition", bg: "bg-tertiary" };
+    case "GOOD":
+      return { label: "Good Condition", bg: "bg-primary" };
+    case "FAIR":
+      return { label: "Fair / Salvage", bg: "bg-secondary" };
+    default:
+      return { label: "For Scrap", bg: "bg-error" };
+  }
+}
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
   if (!user) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-semibold">Asset Alert System</h1>
-        <p className="mt-2 text-gray-500">
+      <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-8 text-center shadow-sm">
+        <h1 className="text-2xl font-semibold">Welcome to Asset Alert</h1>
+        <p className="mt-2 text-on-surface-variant">
           Stop scrapping things other departments need.
         </p>
         <Link
           href="/login"
-          className="mt-4 inline-block rounded bg-amat-blue px-4 py-2 font-medium text-white hover:bg-amat-blue/90"
+          className="mt-4 inline-block rounded-full bg-primary px-6 py-2 font-medium text-white hover:bg-primary-container"
         >
           Log in to continue
         </Link>
@@ -23,196 +50,317 @@ export default async function DashboardPage() {
     );
   }
 
-  const [liveOffers, yourOffers, yourClaims] = await Promise.all([
+  const [liveOffers, allLiveOffers, userClaims] = await Promise.all([
     prisma.offer.findMany({
-      where: {
-        status: "AVAILABLE",
-        offeringUserId: { not: user.id },
-      },
+      where: { status: "AVAILABLE", offeringUserId: { not: user.id } },
       include: { offeringUser: true },
       orderBy: { scrapDate: "asc" },
+      take: 4,
     }),
     prisma.offer.findMany({
-      where: { offeringUserId: user.id },
-      include: { claim: { include: { claimingUser: true } } },
-      orderBy: { createdAt: "desc" },
+      where: { status: "AVAILABLE" },
+      select: { estimatedValue: true },
     }),
     prisma.claim.findMany({
       where: { claimingUserId: user.id },
-      include: { offer: { include: { offeringUser: true } } },
+      include: { offer: true },
       orderBy: { createdAt: "desc" },
+      take: 4,
     }),
   ]);
 
+  const portfolioValue = allLiveOffers.reduce(
+    (s, o) => s + o.estimatedValue,
+    0,
+  );
+  const activeClaimsCount = userClaims.filter((c) =>
+    ["PENDING", "PICKUP_SCHEDULED"].includes(c.status),
+  ).length;
+  const liveOffersCount = allLiveOffers.length;
+
   return (
-    <div className="space-y-8">
-      <Section
-        title={`Live offers (${liveOffers.length})`}
-        accent="green"
-        empty="Nothing available right now. Check back later."
-      >
-        {liveOffers.map((o) => {
-          const days = daysUntil(o.scrapDate);
-          const urgent = days <= 1;
-          return (
-            <Card key={o.id} href={`/offers/${o.id}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold">{o.itemName}</p>
-                  <p className="text-sm text-gray-500">
-                    From <strong>{o.offeringUser.department}</strong> ·{" "}
-                    {o.location}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {formatCondition(o.condition)} · qty {o.quantity} · posted{" "}
-                    {formatRelative(o.createdAt)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={`text-sm font-semibold ${urgent ? "text-red-600" : "text-gray-700"}`}
+    <div>
+      {/* Hero / bento grid */}
+      <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-8 text-white shadow-xl md:col-span-2">
+          <div className="relative z-10">
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-primary-fixed">
+              Portfolio Value
+            </p>
+            <h2 className="text-editorial-display text-5xl font-black">
+              ₪{(portfolioValue / 1000).toFixed(1)}K
+            </h2>
+            <p className="mt-4 max-w-xs text-sm text-primary-fixed/80">
+              Total estimated value of industrial assets currently in the live
+              pipeline.
+            </p>
+          </div>
+          <div className="relative z-10 mt-8 flex items-center gap-4">
+            <Link
+              href="/analytics"
+              className="rounded-full bg-white px-6 py-2 text-sm font-bold text-primary shadow-sm"
+            >
+              View Analytics
+            </Link>
+            <span className="text-xs font-medium text-primary-fixed">
+              Live across {new Set(liveOffers.map((o) => o.offeringUser.department)).size}+
+              departments
+            </span>
+          </div>
+          <div className="absolute -bottom-4 -right-4 opacity-10">
+            <span className="material-symbols-outlined text-[180px]">
+              precision_manufacturing
+            </span>
+          </div>
+        </div>
+
+        <StatCard
+          icon="check_circle"
+          iconColor="text-tertiary"
+          label="Active Claims"
+          value={activeClaimsCount.toString()}
+          sub={
+            activeClaimsCount === 0
+              ? "None pending"
+              : `${activeClaimsCount} awaiting pickup`
+          }
+        />
+        <StatCard
+          icon="local_shipping"
+          iconColor="text-primary-container"
+          label="Live Offers"
+          value={liveOffersCount.toString()}
+          sub={
+            liveOffers[0]
+              ? `Newest from ${liveOffers[0].offeringUser.department}`
+              : "None right now"
+          }
+        />
+      </section>
+
+      {/* Asymmetric main grid */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+        {/* Live offers */}
+        <div className="lg:col-span-2">
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-on-surface">
+                Live Offers
+              </h2>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                Available for immediate claim or salvage
+              </p>
+            </div>
+            <Link
+              href="/offers/new"
+              className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+            >
+              Post item{" "}
+              <span className="material-symbols-outlined text-sm">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+
+          {liveOffers.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-lowest p-10 text-center text-on-surface-variant">
+              No live offers right now from other departments.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {liveOffers.map((o) => {
+                const days = daysUntil(o.scrapDate);
+                const urgent = days <= 1;
+                const badge = conditionBadge(o.condition);
+                return (
+                  <Link
+                    key={o.id}
+                    href={`/offers/${o.id}`}
+                    className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl"
                   >
-                    ⏰ {days > 0 ? `${days}d left` : "expired"}
-                  </p>
-                  <span className="mt-2 inline-block rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white">
-                    Claim →
-                  </span>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </Section>
-
-      <Section
-        title={`Your offers (${yourOffers.length})`}
-        accent="blue"
-        empty="You haven't posted anything yet."
-        action={
-          <Link
-            href="/offers/new"
-            className="text-sm font-medium text-amat-blue hover:underline"
-          >
-            + Post item
-          </Link>
-        }
-      >
-        {yourOffers.map((o) => (
-          <Card key={o.id} href={`/offers/${o.id}`}>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold">{o.itemName}</p>
-                <p className="text-sm text-gray-500">
-                  {o.location} · qty {o.quantity}
-                </p>
-                {o.claim && (
-                  <p className="mt-1 text-xs text-gray-400">
-                    Claimed by {o.claim.claimingUser.department}
-                  </p>
-                )}
-              </div>
-              <StatusPill status={o.status} />
+                    <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
+                      <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
+                        <span className="material-symbols-outlined text-[96px]">
+                          {iconFor(o.itemName)}
+                        </span>
+                      </div>
+                      <div
+                        className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
+                      >
+                        {badge.label}
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <h3 className="text-lg font-bold text-on-surface">
+                          {o.itemName}
+                        </h3>
+                        <span className="whitespace-nowrap font-black text-primary">
+                          {o.estimatedValue > 0
+                            ? `₪${o.estimatedValue.toLocaleString()}`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="mb-6 flex flex-wrap gap-y-2">
+                        <div className="flex w-1/2 items-center gap-2">
+                          <span className="material-symbols-outlined text-xs text-outline">
+                            domain
+                          </span>
+                          <span className="text-xs font-medium text-on-surface-variant">
+                            {o.offeringUser.department}
+                          </span>
+                        </div>
+                        <div className="flex w-1/2 items-center gap-2">
+                          <span className="material-symbols-outlined text-xs text-outline">
+                            location_on
+                          </span>
+                          <span className="truncate text-xs font-medium text-on-surface-variant">
+                            {o.location}
+                          </span>
+                        </div>
+                        <div className="flex w-full items-center gap-2">
+                          <span className="material-symbols-outlined text-xs text-outline">
+                            schedule
+                          </span>
+                          <span
+                            className={`text-xs font-bold uppercase tracking-tighter ${urgent ? "text-error" : "text-on-surface-variant"}`}
+                          >
+                            Deadline:{" "}
+                            {days > 0 ? `${days}d left` : "expired"}
+                          </span>
+                        </div>
+                        <div className="flex w-full items-center gap-2">
+                          <span className="material-symbols-outlined text-xs text-outline">
+                            inventory_2
+                          </span>
+                          <span className="text-xs font-medium text-on-surface-variant">
+                            qty {o.quantity} · {formatCondition(o.condition)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
+                        Claim Asset
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-          </Card>
-        ))}
-      </Section>
+          )}
+        </div>
 
-      <Section
-        title={`Your claims (${yourClaims.length})`}
-        accent="amber"
-        empty="You haven't claimed anything yet."
-      >
-        {yourClaims.map((c) => (
-          <Card key={c.id} href={`/offers/${c.offerId}`}>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold">{c.offer.itemName}</p>
-                <p className="text-sm text-gray-500">
-                  From <strong>{c.offer.offeringUser.department}</strong> ·{" "}
-                  {c.offer.location}
-                </p>
-              </div>
-              <StatusPill status={c.status} />
+        {/* Recent claims sidebar */}
+        <div className="lg:col-span-1">
+          <div className="h-fit rounded-xl bg-surface-container-low p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-on-surface">
+                Recent Claims
+              </h2>
+              <span className="rounded bg-surface-container-highest px-2 py-1 text-[10px] font-black uppercase">
+                {activeClaimsCount > 0 ? "Active" : "None"}
+              </span>
             </div>
-          </Card>
-        ))}
-      </Section>
+
+            {userClaims.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">
+                You haven&apos;t claimed anything yet. Browse live offers on the
+                left to start.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {userClaims.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/offers/${c.offerId}`}
+                    className="group flex items-center gap-4 rounded-lg bg-surface-container-lowest p-4 transition-all hover:shadow-sm"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-primary-fixed text-primary">
+                      <span className="material-symbols-outlined">
+                        {iconFor(c.offer.itemName)}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-on-surface">
+                        {c.offer.itemName}
+                      </p>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
+                        {c.status.replace("_", " ").toLowerCase()}
+                      </p>
+                    </div>
+                    <div
+                      className={`h-2 w-2 rounded-full ${
+                        c.status === "COMPLETED"
+                          ? "bg-tertiary"
+                          : c.status === "CANCELLED"
+                            ? "bg-error"
+                            : "bg-primary"
+                      }`}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <Link
+              href="/inbox"
+              className="mt-6 flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-on-surface-variant transition-colors hover:text-primary"
+            >
+              View Notifications{" "}
+              <span className="material-symbols-outlined text-sm">history</span>
+            </Link>
+          </div>
+
+          <div className="relative mt-10 overflow-hidden rounded-xl bg-[#191b23] p-6 text-white">
+            <h4 className="relative z-10 text-lg font-bold">
+              Coming next iteration
+            </h4>
+            <p className="relative z-10 mt-1 text-sm text-slate-400">
+              Real email alerts (SendGrid), LDAP login, photo uploads, advanced
+              search.
+            </p>
+            <Link
+              href="/analytics"
+              className="relative z-10 mt-4 inline-block rounded-lg bg-white px-4 py-2 text-xs font-black uppercase tracking-tight text-[#191b23]"
+            >
+              See Analytics
+            </Link>
+            <div className="absolute -bottom-4 -right-4 opacity-10">
+              <span className="material-symbols-outlined text-8xl">
+                factory
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Section({
-  title,
-  accent,
-  empty,
-  action,
-  children,
+function StatCard({
+  icon,
+  iconColor,
+  label,
+  value,
+  sub,
 }: {
-  title: string;
-  accent: "green" | "blue" | "amber";
-  empty: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
+  icon: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  sub: string;
 }) {
-  const dot = {
-    green: "bg-green-500",
-    blue: "bg-amat-blue",
-    amber: "bg-amber-500",
-  }[accent];
-  const childArray = Array.isArray(children) ? children : [children];
-  const filled = childArray.filter(Boolean).length > 0;
   return (
-    <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
-          {title}
-        </h2>
-        {action}
+    <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.06)]">
+      <div>
+        <span className={`material-symbols-outlined mb-2 ${iconColor}`}>
+          {icon}
+        </span>
+        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+          {label}
+        </p>
+        <h3 className="mt-1 text-3xl font-bold text-on-surface">{value}</h3>
       </div>
-      {filled ? (
-        <div className="space-y-2">{children}</div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-400">
-          {empty}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function Card({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-amat-accent hover:shadow"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    AVAILABLE: "bg-green-100 text-green-800",
-    CLAIMED: "bg-amber-100 text-amber-800",
-    PENDING: "bg-amber-100 text-amber-800",
-    PICKUP_SCHEDULED: "bg-blue-100 text-blue-800",
-    COMPLETED: "bg-blue-100 text-blue-800",
-    CANCELLED: "bg-gray-200 text-gray-700",
-    SCRAPPED: "bg-gray-200 text-gray-700",
-  };
-  return (
-    <span
-      className={`rounded px-2 py-1 text-xs font-semibold ${map[status] ?? "bg-gray-100"}`}
-    >
-      {status}
-    </span>
+      <p className="text-xs text-on-surface-variant">{sub}</p>
+    </div>
   );
 }
