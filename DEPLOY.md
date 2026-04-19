@@ -24,17 +24,30 @@ The `build` script (`prisma generate && prisma db push --accept-data-loss && nex
 
 ## 3. Seed demo data (one-time)
 
-After the first deploy succeeds, seed the production DB locally:
+The app exposes a protected `GET /api/admin/seed` endpoint. To use it:
+
+1. In Vercel → **Settings → Environment Variables**, add:
+   - **Name**: `SEED_SECRET`
+   - **Value**: any random string (e.g. `openssl rand -hex 16`)
+   - Apply to **Production** (and Preview if you want).
+2. **Deployments → Redeploy** so the new env var is picked up.
+3. Visit:
+   ```
+   https://YOUR-APP.vercel.app/api/admin/seed?secret=YOUR_SECRET
+   ```
+   You should see `{"ok":true,"users":5,"offers":3}`. Hitting it again is a no-op (skips if users already exist).
+4. To wipe and re-seed: send a `POST` with `?reset=true`:
+   ```bash
+   curl -X POST "https://YOUR-APP.vercel.app/api/admin/seed?secret=YOUR_SECRET&reset=true"
+   ```
+
+### Alternative: seed from your laptop
 
 ```bash
-# Pull the prod DATABASE_URL from Vercel
-vercel env pull .env.production.local
-
-# Run the seed against prod
-DATABASE_URL="$(grep DATABASE_URL .env.production.local | cut -d'=' -f2- | tr -d '"')" npx tsx prisma/seed.ts
+npx vercel link
+npx vercel env pull .env.production.local
+DATABASE_URL=$(grep DATABASE_URL .env.production.local | cut -d= -f2- | tr -d '"') npx tsx prisma/seed.ts
 ```
-
-Or seed via Neon's SQL editor by running the queries from `prisma/seed.ts` manually.
 
 ## 4. Verify
 
