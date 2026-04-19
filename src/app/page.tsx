@@ -50,7 +50,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const [liveOffers, allLiveOffers, userClaims] = await Promise.all([
+  const [liveOffers, allLiveOffers, userClaims, myOffers] = await Promise.all([
     prisma.offer.findMany({
       where: { status: "AVAILABLE", offeringUserId: { not: user.id } },
       include: { offeringUser: true },
@@ -66,6 +66,12 @@ export default async function DashboardPage() {
       include: { offer: true },
       orderBy: { createdAt: "desc" },
       take: 4,
+    }),
+    prisma.offer.findMany({
+      where: { offeringUserId: user.id },
+      include: { claim: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
     }),
   ]);
 
@@ -332,6 +338,69 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* My Offers */}
+      {myOffers.length > 0 && (
+        <div className="mt-12">
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-on-surface">My Offers</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                Items you&apos;ve listed — track their status here
+              </p>
+            </div>
+            <Link
+              href="/offers/new"
+              className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+            >
+              Post another{" "}
+              <span className="material-symbols-outlined text-sm">add</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {myOffers.map((o) => {
+              const badge = conditionBadge(o.condition);
+              const statusColor =
+                o.status === "AVAILABLE"
+                  ? "bg-tertiary"
+                  : o.status === "CLAIMED"
+                    ? "bg-primary"
+                    : o.status === "COMPLETED"
+                      ? "bg-outline"
+                      : "bg-error";
+              return (
+                <Link
+                  key={o.id}
+                  href={`/offers/${o.id}`}
+                  className="group flex items-center gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-sm transition-all hover:shadow-md"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
+                    <span className="material-symbols-outlined">
+                      {iconFor(o.itemName)}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-on-surface">
+                      {o.itemName}
+                    </p>
+                    <p className="text-xs text-on-surface-variant">
+                      qty {o.quantity} · {badge.label}
+                    </p>
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      {o.claim ? "1 claim" : "No claims yet"}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-tight text-white ${statusColor}`}
+                  >
+                    {o.status.toLowerCase()}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
