@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: marketplaceamat-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amat
+      POSTGRES_PASSWORD: amat
+      POSTGRES_DB: marketplaceamat
+    ports:
+      - "5432:5432"
+    volumes:
+      - amat-db:/var/lib/postgresql/data
+
+volumes:
+  amat-db:

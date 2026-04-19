@@ -15,6 +15,7 @@ export async function setCurrentUser(userId: string) {
   store.set(COOKIE_NAME, userId, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
