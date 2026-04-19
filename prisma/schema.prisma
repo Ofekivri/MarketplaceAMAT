@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  department    String
+  role          String         @default("claimer") // viewer | claimer | poster
+  offers        Offer[]        @relation("OfferingUser")
+  claims        Claim[]        @relation("ClaimingUser")
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+}
+
+model Offer {
+  id              String   @id @default(cuid())
+  offeringUserId  String
+  offeringUser    User     @relation("OfferingUser", fields: [offeringUserId], references: [id])
+  itemName        String
+  description     String
+  quantity        Int
+  condition       String   // LIKE_NEW | GOOD | FAIR | POOR
+  location        String
+  scrapDate       DateTime
+  estimatedValue  Int      @default(0) // in NIS, used for analytics
+  status          String   @default("AVAILABLE") // AVAILABLE | CLAIMED | COMPLETED | SCRAPPED
+  claim           Claim?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Claim {
+  id              String   @id @default(cuid())
+  offerId         String   @unique
+  offer           Offer    @relation(fields: [offerId], references: [id])
+  claimingUserId  String
+  claimingUser    User     @relation("ClaimingUser", fields: [claimingUserId], references: [id])
+  status          String   @default("PENDING") // PENDING | PICKUP_SCHEDULED | COMPLETED | CANCELLED
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
