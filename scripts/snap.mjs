@@ -28,6 +28,7 @@ async function snap() {
     { url: "http://localhost:3000/offers/new", file: "/tmp/04-new-offer.png", cookie: alice.id, label: "Post item form" },
     { url: "http://localhost:3000/", file: "/tmp/05-dashboard-bob.png", cookie: bob.id, label: "Dashboard as Bob (Procurement)" },
     { url: "http://localhost:3000/analytics", file: "/tmp/06-analytics.png", cookie: bob.id, label: "Analytics" },
+    { url: "http://localhost:3000/claims", file: "/tmp/07-claims-bob.png", cookie: bob.id, label: "My Claims as Bob" },
   ];
 
   for (const s of shots) {

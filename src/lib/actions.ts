@@ -94,6 +94,46 @@ export async function claimOfferAction(formData: FormData) {
   revalidatePath(`/offers/${offerId}`);
 }
 
+export async function cancelClaimAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  if (!offerId) throw new Error("Missing offer id");
+
+  const offer = await prisma.offer.findUnique({
+    where: { id: offerId },
+    include: { claim: true, offeringUser: true },
+  });
+  if (!offer || !offer.claim) throw new Error("Offer or claim not found");
+  if (offer.claim.claimingUserId !== user.id) {
+    throw new Error("Only the claimer can cancel their claim");
+  }
+  if (offer.claim.status === "COMPLETED") {
+    throw new Error("Cannot cancel a completed claim");
+  }
+
+  await prisma.$transaction([
+    prisma.claim.update({
+      where: { id: offer.claim.id },
+      data: { status: "CANCELLED" },
+    }),
+    prisma.offer.update({
+      where: { id: offerId },
+      data: { status: "AVAILABLE" },
+    }),
+  ]);
+
+  await notify({
+    userId: offer.offeringUserId,
+    title: `Claim cancelled: ${offer.itemName}`,
+    body: `${user.department} cancelled their claim. Item is back on the marketplace.`,
+    link: `/offers/${offer.id}`,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/claims");
+  revalidatePath(`/offers/${offerId}`);
+}
+
 export async function completeClaimAction(formData: FormData) {
   const user = await requireUser();
   const offerId = String(formData.get("offerId") ?? "");
@@ -135,6 +175,7 @@ export async function completeClaimAction(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/claims");
   revalidatePath(`/offers/${offerId}`);
 }
 

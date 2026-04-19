@@ -14,10 +14,10 @@ const primary: Item[] = [
   { href: "/", icon: "dashboard", label: "Dashboard", matchPaths: ["/"] },
   { href: "/", icon: "storefront", label: "Marketplace" },
   {
-    href: "/inbox",
+    href: "/claims",
     icon: "shopping_cart_checkout",
     label: "My Claims",
-    matchPaths: ["/inbox"],
+    matchPaths: ["/claims"],
   },
   { href: "/", icon: "inventory", label: "My Offers" },
   {

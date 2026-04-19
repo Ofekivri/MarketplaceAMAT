@@ -26,7 +26,7 @@ export function MobileNav() {
         <span className="material-symbols-outlined">add</span>
       </Link>
       <Link
-        href="/inbox"
+        href="/claims"
         className="flex flex-col items-center gap-1 text-on-surface-variant"
       >
         <span className="material-symbols-outlined">shopping_cart_checkout</span>
