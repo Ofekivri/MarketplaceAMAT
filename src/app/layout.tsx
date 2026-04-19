@@ -36,7 +36,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="flex min-h-screen overflow-hidden bg-surface text-on-surface">
-        <Sidebar activeHref="/" />
+        <Sidebar />
         <main className="flex h-screen flex-1 flex-col overflow-y-auto">
           <TopBar user={user} unreadCount={unreadCount} />
           <div className="mx-auto w-full max-w-7xl flex-1 p-8 pb-24 md:pb-8">

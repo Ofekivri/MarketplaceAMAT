@@ -1,22 +1,47 @@
-import Link from "next/link";
+"use client";
 
-type Item = { href: string; icon: string; label: string; fill?: boolean };
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+type Item = {
+  href: string;
+  icon: string;
+  label: string;
+  matchPaths?: string[];
+};
 
 const primary: Item[] = [
-  { href: "/", icon: "dashboard", label: "Dashboard", fill: true },
+  { href: "/", icon: "dashboard", label: "Dashboard", matchPaths: ["/"] },
   { href: "/", icon: "storefront", label: "Marketplace" },
-  { href: "/inbox", icon: "shopping_cart_checkout", label: "My Claims" },
+  {
+    href: "/inbox",
+    icon: "shopping_cart_checkout",
+    label: "My Claims",
+    matchPaths: ["/inbox"],
+  },
   { href: "/", icon: "inventory", label: "My Offers" },
-  { href: "/analytics", icon: "analytics", label: "Analytics" },
-  { href: "/offers/new", icon: "add_box", label: "Post Item" },
+  {
+    href: "/analytics",
+    icon: "analytics",
+    label: "Analytics",
+    matchPaths: ["/analytics"],
+  },
+  {
+    href: "/offers/new",
+    icon: "add_box",
+    label: "Post Item",
+    matchPaths: ["/offers/new", "/offers"],
+  },
 ];
 
 const footer: Item[] = [
-  { href: "/inbox", icon: "contact_support", label: "Inbox" },
+  { href: "/inbox", icon: "contact_support", label: "Support" },
   { href: "/login", icon: "switch_account", label: "Switch user" },
 ];
 
-export function Sidebar({ activeHref }: { activeHref: string }) {
+export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="z-50 hidden h-screen w-64 flex-col border-r-0 bg-[#ededf9] text-sm font-medium tracking-wide md:flex">
       <div className="flex h-full flex-col gap-2 px-8 py-8">
@@ -27,7 +52,7 @@ export function Sidebar({ activeHref }: { activeHref: string }) {
                 className="material-symbols-outlined text-sm"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
-                dataset
+                package_2
               </span>
             </div>
             <span className="text-lg font-bold text-[#191b23]">
@@ -41,7 +66,10 @@ export function Sidebar({ activeHref }: { activeHref: string }) {
 
         <nav className="flex flex-col gap-1">
           {primary.map((item, i) => {
-            const active = i === 0 && activeHref === "/";
+            const active =
+              item.matchPaths?.some((p) =>
+                p === "/" ? pathname === "/" : pathname.startsWith(p),
+              ) ?? false;
             return (
               <Link
                 key={`${item.label}-${i}`}
@@ -54,11 +82,7 @@ export function Sidebar({ activeHref }: { activeHref: string }) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={
-                    item.fill || active
-                      ? { fontVariationSettings: "'FILL' 1" }
-                      : undefined
-                  }
+                  style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
                   {item.icon}
                 </span>
