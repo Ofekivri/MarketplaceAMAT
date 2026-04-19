@@ -198,3 +198,12 @@ export async function markAllReadAction() {
   });
   revalidatePath("/inbox");
 }
+
+export async function switchUserAction(formData: FormData) {
+  const { setCurrentUser } = await import("./session");
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) return;
+  await setCurrentUser(userId);
+  revalidatePath("/", "layout");
+  redirect("/");
+}

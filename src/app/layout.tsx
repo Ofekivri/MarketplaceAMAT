@@ -16,7 +16,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const [user, allUsers] = await Promise.all([
+    getCurrentUser(),
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+  ]);
   const unreadCount = user
     ? await prisma.notification.count({
         where: { userId: user.id, readAt: null },
@@ -38,7 +41,7 @@ export default async function RootLayout({
       <body className="flex min-h-screen overflow-hidden bg-surface text-on-surface">
         <Sidebar />
         <main className="flex h-screen flex-1 flex-col overflow-y-auto">
-          <TopBar user={user} unreadCount={unreadCount} />
+          <TopBar user={user} users={allUsers} unreadCount={unreadCount} />
           <div className="mx-auto w-full max-w-7xl flex-1 p-8 pb-24 md:pb-8">
             {children}
           </div>

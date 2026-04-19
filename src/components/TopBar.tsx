@@ -1,19 +1,15 @@
 import Link from "next/link";
+import { UserSwitcherButton } from "./UserSwitcherButton";
+
+type User = { id: string; name: string; department: string; role: string };
 
 type Props = {
-  user: { name: string; department: string; role: string } | null;
+  user: User | null;
+  users: User[];
   unreadCount: number;
 };
 
-export function TopBar({ user, unreadCount }: Props) {
-  const initials = user
-    ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "?";
+export function TopBar({ user, users, unreadCount }: Props) {
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-[#faf8ff]/80 bg-opacity-80 px-8 py-4 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.04)] backdrop-blur-xl">
@@ -52,19 +48,7 @@ export function TopBar({ user, unreadCount }: Props) {
           </button>
         </div>
         <div className="mx-2 h-8 w-[1px] bg-outline-variant opacity-30" />
-        <Link href="/login" className="flex items-center gap-3 pl-2">
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-bold text-on-surface">
-              {user?.name ?? "Not signed in"}
-            </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
-              {user?.department ?? "Click to log in"}
-            </p>
-          </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary-fixed bg-primary-fixed text-sm font-bold text-primary">
-            {initials}
-          </div>
-        </Link>
+        <UserSwitcherButton current={user} users={users} />
       </div>
     </header>
   );
