@@ -5,24 +5,11 @@ import {
   completeClaimAction,
 } from "@/lib/actions";
 import { formatDate } from "@/lib/format";
+import { iconFor } from "@/lib/display";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "My Claims | Asset Alert" };
-
-function iconFor(itemName: string): string {
-  const n = itemName.toLowerCase();
-  if (n.includes("chair") || n.includes("desk") || n.includes("furniture"))
-    return "chair_alt";
-  if (n.includes("motor") || n.includes("pump")) return "settings";
-  if (n.includes("cable") || n.includes("wire") || n.includes("electric"))
-    return "bolt";
-  if (n.includes("tool")) return "construction";
-  if (n.includes("pallet") || n.includes("box")) return "inventory_2";
-  if (n.includes("monitor") || n.includes("screen") || n.includes("computer"))
-    return "monitor";
-  return "category";
-}
 
 function refNumber(id: string) {
   return `#CLM-${id.slice(-6).toUpperCase()}`;

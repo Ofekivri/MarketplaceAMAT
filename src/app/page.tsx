@@ -1,34 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { formatCondition, daysUntil } from "@/lib/format";
+import { iconFor, conditionBadge, offerStatusColor } from "@/lib/display";
 import Link from "next/link";
-
-function iconFor(itemName: string): string {
-  const n = itemName.toLowerCase();
-  if (n.includes("chair") || n.includes("desk") || n.includes("furniture"))
-    return "chair_alt";
-  if (n.includes("motor") || n.includes("pump")) return "settings";
-  if (n.includes("cable") || n.includes("wire") || n.includes("electric"))
-    return "bolt";
-  if (n.includes("tool")) return "construction";
-  if (n.includes("pallet") || n.includes("box")) return "inventory_2";
-  if (n.includes("monitor") || n.includes("screen") || n.includes("computer"))
-    return "monitor";
-  return "category";
-}
-
-function conditionBadge(cond: string) {
-  switch (cond) {
-    case "LIKE_NEW":
-      return { label: "Excellent Condition", bg: "bg-tertiary" };
-    case "GOOD":
-      return { label: "Good Condition", bg: "bg-primary" };
-    case "FAIR":
-      return { label: "Fair / Salvage", bg: "bg-secondary" };
-    default:
-      return { label: "For Scrap", bg: "bg-error" };
-  }
-}
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -339,35 +313,30 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* My Offers */}
+      {/* My Offers preview */}
       {myOffers.length > 0 && (
         <div className="mt-12">
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-bold text-on-surface">My Offers</h2>
               <p className="mt-1 text-sm text-on-surface-variant">
-                Items you&apos;ve listed — track their status here
+                Your most recent listings — view all on the My Offers page
               </p>
             </div>
             <Link
-              href="/offers/new"
+              href="/my-offers"
               className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
             >
-              Post another{" "}
-              <span className="material-symbols-outlined text-sm">add</span>
+              View all{" "}
+              <span className="material-symbols-outlined text-sm">
+                arrow_forward
+              </span>
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {myOffers.map((o) => {
               const badge = conditionBadge(o.condition);
-              const statusColor =
-                o.status === "AVAILABLE"
-                  ? "bg-tertiary"
-                  : o.status === "CLAIMED"
-                    ? "bg-primary"
-                    : o.status === "COMPLETED"
-                      ? "bg-outline"
-                      : "bg-error";
+              const statusColor = offerStatusColor(o.status);
               return (
                 <Link
                   key={o.id}
