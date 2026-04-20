@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String
-  department    String
-  role          String         @default("claimer") // viewer | claimer | poster
-  offers        Offer[]        @relation("OfferingUser")
-  claims        Claim[]        @relation("ClaimingUser")
-  notifications Notification[]
-  createdAt     DateTime       @default(now())
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String
+  department          String
+  role                String               @default("claimer") // viewer | claimer | poster
+  offers              Offer[]              @relation("OfferingUser")
+  claims              Claim[]              @relation("ClaimingUser")
+  notifications       Notification[]
+  searchSubscriptions SearchSubscription[]
+  createdAt           DateTime             @default(now())
 }
 
 model Offer {
@@ -63,4 +64,14 @@ model Notification {
   link      String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+model SearchSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  query     String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -25,6 +25,12 @@ const primary: Item[] = [
     matchPaths: ["/my-offers"],
   },
   {
+    href: "/watchlist",
+    icon: "notifications_active",
+    label: "Watchlist",
+    matchPaths: ["/watchlist"],
+  },
+  {
     href: "/analytics",
     icon: "analytics",
     label: "Analytics",

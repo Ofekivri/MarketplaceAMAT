@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { formatCondition, daysUntil } from "@/lib/format";
 import { CATEGORIES, getCategory, isValidCategory } from "@/lib/categories";
+import { createSearchSubscriptionAction } from "@/lib/actions";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 
@@ -343,9 +344,32 @@ export default async function DashboardPage({
       {/* Offer grid or list */}
       {liveOffers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-lowest p-10 text-center text-on-surface-variant">
-          {q
-            ? `No offers match "${q}". Try a different search.`
-            : "No live offers right now from other departments."}
+          {q ? (
+            <>
+              <p>No offers match &quot;{q}&quot; right now.</p>
+              <form
+                action={createSearchSubscriptionAction}
+                className="mt-4 flex justify-center"
+              >
+                <input type="hidden" name="query" value={q} />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-primary-container"
+                >
+                  <span className="material-symbols-outlined text-base">
+                    notifications_active
+                  </span>
+                  Notify me when it&apos;s added
+                </button>
+              </form>
+              <p className="mt-2 text-xs text-on-surface-variant/70">
+                We&apos;ll drop a note in your inbox the moment a matching item
+                is posted.
+              </p>
+            </>
+          ) : (
+            "No live offers right now from other departments."
+          )}
         </div>
       ) : view === "list" ? (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
