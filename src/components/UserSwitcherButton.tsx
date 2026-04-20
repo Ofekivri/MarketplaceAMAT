@@ -69,8 +69,8 @@ export function UserSwitcherButton({
                 <input type="hidden" name="userId" value={u.id} />
                 <button
                   type="submit"
-                  onClick={() => setOpen(false)}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-container ${
+                  disabled={isActive}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-container disabled:cursor-default ${
                     isActive ? "bg-primary-fixed/30" : ""
                   }`}
                 >

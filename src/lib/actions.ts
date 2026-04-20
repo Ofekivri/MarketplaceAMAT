@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "./db";
-import { requireUser } from "./session";
+import { requireUser, setCurrentUser } from "./session";
 import { notify, notifyAllExcept } from "./notify";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -200,7 +200,6 @@ export async function markAllReadAction() {
 }
 
 export async function switchUserAction(formData: FormData) {
-  const { setCurrentUser } = await import("./session");
   const userId = String(formData.get("userId") ?? "").trim();
   if (!userId) return;
   await setCurrentUser(userId);
