@@ -8,6 +8,9 @@ import { formatRelative, daysUntil } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function WatchlistPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
