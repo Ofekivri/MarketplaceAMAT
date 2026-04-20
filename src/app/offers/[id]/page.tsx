@@ -5,15 +5,19 @@ import {
   completeClaimAction,
 } from "@/lib/actions";
 import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/format";
+import { PostedCelebration } from "@/components/PostedCelebration";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 export default async function OfferDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ posted?: string }>;
 }) {
   const { id } = await params;
+  const { posted } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -35,6 +39,10 @@ export default async function OfferDetailPage({
       <Link href="/" className="text-sm text-gray-500 hover:underline">
         ← Back to dashboard
       </Link>
+
+      {posted === "1" && isOwn && offer.status === "AVAILABLE" && (
+        <PostedCelebration itemName={offer.itemName} />
+      )}
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4">

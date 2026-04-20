@@ -70,7 +70,7 @@ export async function createOfferAction(formData: FormData) {
   );
 
   revalidatePath("/");
-  redirect(`/offers/${offer.id}`);
+  redirect(`/offers/${offer.id}?posted=1`);
 }
 
 export async function createSearchSubscriptionAction(formData: FormData) {
