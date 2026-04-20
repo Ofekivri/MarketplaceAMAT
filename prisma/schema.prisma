@@ -31,6 +31,7 @@ model Offer {
   scrapDate       DateTime
   estimatedValue  Int      @default(0) // in NIS, used for analytics
   status          String   @default("AVAILABLE") // AVAILABLE | CLAIMED | COMPLETED | SCRAPPED
+  images          String[] @default([]) // data URLs
   claim           Claim?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
