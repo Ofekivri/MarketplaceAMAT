@@ -18,7 +18,12 @@ const primary: Item[] = [
     label: "My Claims",
     matchPaths: ["/claims"],
   },
-  { href: "/", icon: "inventory", label: "My Offers" },
+  {
+    href: "/my-offers",
+    icon: "inventory",
+    label: "My Offers",
+    matchPaths: ["/my-offers"],
+  },
   {
     href: "/analytics",
     icon: "analytics",
