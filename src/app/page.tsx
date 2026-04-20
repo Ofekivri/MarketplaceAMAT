@@ -74,8 +74,13 @@ export default async function DashboardPage({
     filters.push({ category });
   }
 
-  const [liveOffers, allLiveOffers, activeClaimCount, categoryCounts] =
-    await Promise.all([
+  const [
+    liveOffers,
+    allLiveOffers,
+    activeClaimCount,
+    categoryCounts,
+    pendingReceipts,
+  ] = await Promise.all([
     prisma.offer.findMany({
       where: {
         status: "AVAILABLE",
@@ -104,6 +109,15 @@ export default async function DashboardPage({
       },
       _count: { _all: true },
     }),
+    prisma.claim.findMany({
+      where: {
+        claimingUserId: user.id,
+        status: { in: ["PENDING", "PICKUP_SCHEDULED"] },
+      },
+      include: { offer: true },
+      orderBy: { createdAt: "asc" },
+      take: 3,
+    }),
   ]);
 
   const portfolioValue = allLiveOffers.reduce(
@@ -119,6 +133,47 @@ export default async function DashboardPage({
 
   return (
     <div>
+      {/* Pending-receipt banner */}
+      {pendingReceipts.length > 0 && (
+        <section className="mb-6 overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+          <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-100 px-5 py-3">
+            <span className="material-symbols-outlined text-amber-700">
+              notifications_active
+            </span>
+            <h3 className="text-sm font-bold text-amber-900">
+              {pendingReceipts.length === 1
+                ? "1 item waiting to be received"
+                : `${pendingReceipts.length} items waiting to be received`}
+            </h3>
+          </div>
+          <ul className="divide-y divide-amber-200">
+            {pendingReceipts.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/offers/${c.offerId}`}
+                  className="group flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-amber-100"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-amber-950">
+                      {c.offer.itemName}
+                    </p>
+                    <p className="truncate text-xs text-amber-800">
+                      {c.offer.location}
+                    </p>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-600 px-3 py-1.5 text-xs font-bold text-white transition-all group-hover:bg-green-700">
+                    <span className="material-symbols-outlined text-sm">
+                      check_circle
+                    </span>
+                    Mark received
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Hero / bento grid */}
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-5 text-white shadow-md md:col-span-2">
