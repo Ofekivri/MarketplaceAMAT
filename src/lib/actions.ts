@@ -3,11 +3,14 @@
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify, notifyAllExcept } from "./notify";
+import { isValidCategory } from "./categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function createOfferAction(formData: FormData) {
   const user = await requireUser();
+  const categoryRaw = String(formData.get("category") ?? "").trim();
+  const category = isValidCategory(categoryRaw) ? categoryRaw : "OTHER";
   const itemName = String(formData.get("itemName") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const quantity = Number(formData.get("quantity") ?? 1);
@@ -26,6 +29,7 @@ export async function createOfferAction(formData: FormData) {
   const offer = await prisma.offer.create({
     data: {
       offeringUserId: user.id,
+      category,
       itemName,
       description,
       quantity,

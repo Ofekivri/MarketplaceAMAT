@@ -1,27 +1,19 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { formatCondition, daysUntil } from "@/lib/format";
+import { CATEGORIES, getCategory, isValidCategory } from "@/lib/categories";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 
-function iconFor(itemName: string): string {
-  const n = itemName.toLowerCase();
-  if (n.includes("chair") || n.includes("desk") || n.includes("furniture"))
-    return "chair_alt";
-  if (n.includes("motor") || n.includes("pump")) return "settings";
-  if (n.includes("cable") || n.includes("wire") || n.includes("electric"))
-    return "bolt";
-  if (n.includes("tool")) return "construction";
-  if (n.includes("pallet") || n.includes("box")) return "inventory_2";
-  if (n.includes("monitor") || n.includes("screen") || n.includes("computer"))
-    return "monitor";
-  return "category";
-}
-
-function buildHref(q: string, view: "grid" | "list"): string {
+function buildHref(
+  q: string,
+  view: "grid" | "list",
+  category: string | null,
+): string {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (view === "list") params.set("view", "list");
+  if (category) params.set("category", category);
   const s = params.toString();
   return s ? `/?${s}` : "/";
 }
@@ -42,12 +34,13 @@ function conditionBadge(cond: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; view?: string; category?: string }>;
 }) {
   const user = await getCurrentUser();
-  const { q: rawQ, view: rawView } = await searchParams;
+  const { q: rawQ, view: rawView, category: rawCat } = await searchParams;
   const q = rawQ?.trim() ?? "";
   const view: "grid" | "list" = rawView === "list" ? "list" : "grid";
+  const category = rawCat && isValidCategory(rawCat) ? rawCat : null;
   const take = view === "list" ? 20 : 6;
 
   if (!user) {
@@ -67,22 +60,27 @@ export default async function DashboardPage({
     );
   }
 
-  const searchFilter: Prisma.OfferWhereInput = q
-    ? {
-        OR: [
-          { itemName: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { location: { contains: q, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const filters: Prisma.OfferWhereInput[] = [];
+  if (q) {
+    filters.push({
+      OR: [
+        { itemName: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { location: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (category) {
+    filters.push({ category });
+  }
 
-  const [liveOffers, allLiveOffers, activeClaimCount] = await Promise.all([
+  const [liveOffers, allLiveOffers, activeClaimCount, categoryCounts] =
+    await Promise.all([
     prisma.offer.findMany({
       where: {
         status: "AVAILABLE",
         offeringUserId: { not: user.id },
-        ...searchFilter,
+        AND: filters,
       },
       include: { offeringUser: true },
       orderBy: { scrapDate: "asc" },
@@ -98,6 +96,14 @@ export default async function DashboardPage({
         status: { in: ["PENDING", "PICKUP_SCHEDULED"] },
       },
     }),
+    prisma.offer.groupBy({
+      by: ["category"],
+      where: {
+        status: "AVAILABLE",
+        offeringUserId: { not: user.id },
+      },
+      _count: { _all: true },
+    }),
   ]);
 
   const portfolioValue = allLiveOffers.reduce(
@@ -105,6 +111,11 @@ export default async function DashboardPage({
     0,
   );
   const liveOffersCount = allLiveOffers.length;
+
+  const countByCategory = new Map(
+    categoryCounts.map((c) => [c.category, c._count._all]),
+  );
+  const totalCount = categoryCounts.reduce((s, c) => s + c._count._all, 0);
 
   return (
     <div>
@@ -166,13 +177,15 @@ export default async function DashboardPage({
       </section>
 
       {/* Search + header */}
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">Live Offers</h2>
           <p className="mt-1 text-sm text-on-surface-variant">
-            {q
-              ? `Search results for "${q}"`
-              : "Available for immediate claim or salvage"}
+            {category
+              ? `Filtered: ${getCategory(category).label}${q ? ` · "${q}"` : ""}`
+              : q
+                ? `Search results for "${q}"`
+                : "Available for immediate claim or salvage"}
           </p>
         </div>
         <div className="flex w-full items-center gap-2 md:max-w-xl">
@@ -189,9 +202,12 @@ export default async function DashboardPage({
               className="w-full border-none bg-transparent text-sm placeholder:text-outline focus:outline-none focus:ring-0"
             />
             <input type="hidden" name="view" value={view} />
+            {category && (
+              <input type="hidden" name="category" value={category} />
+            )}
             {q && (
               <Link
-                href={`/${view === "list" ? "?view=list" : ""}`}
+                href={buildHref("", view, category)}
                 aria-label="Clear search"
                 className="rounded-full p-1 text-outline hover:bg-surface-container-high"
               >
@@ -201,7 +217,7 @@ export default async function DashboardPage({
           </form>
           <div className="flex shrink-0 items-center gap-1 rounded-full bg-surface-container p-1">
             <Link
-              href={buildHref(q, "grid")}
+              href={buildHref(q, "grid", category)}
               aria-label="Grid view"
               className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
                 view === "grid"
@@ -212,7 +228,7 @@ export default async function DashboardPage({
               <span className="material-symbols-outlined text-lg">grid_view</span>
             </Link>
             <Link
-              href={buildHref(q, "list")}
+              href={buildHref(q, "list", category)}
               aria-label="List view"
               className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
                 view === "list"
@@ -224,6 +240,49 @@ export default async function DashboardPage({
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Category chips */}
+      <div className="mb-6 -mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1">
+        <Link
+          href={buildHref(q, view, null)}
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+            !category
+              ? "bg-primary text-white shadow-sm"
+              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+        >
+          All
+          <span className={`rounded-full px-1.5 text-[10px] ${!category ? "bg-white/20" : "bg-white/70"}`}>
+            {totalCount}
+          </span>
+        </Link>
+        {CATEGORIES.map((c) => {
+          const count = countByCategory.get(c.id) ?? 0;
+          if (count === 0 && category !== c.id) return null;
+          const active = category === c.id;
+          return (
+            <Link
+              key={c.id}
+              href={buildHref(q, view, active ? null : c.id)}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                active
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">{c.icon}</span>
+              {c.label}
+              <span
+                className={`rounded-full px-1.5 text-[10px] ${
+                  active ? "bg-white/20" : "bg-white/70"
+                }`}
+              >
+                {count}
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Offer grid or list */}
@@ -257,7 +316,7 @@ export default async function DashboardPage({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
                         <span className="material-symbols-outlined text-base">
-                          {iconFor(o.itemName)}
+                          {getCategory(o.category).icon}
                         </span>
                       </div>
                       <div className="min-w-0">
@@ -313,13 +372,19 @@ export default async function DashboardPage({
                 <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
                   <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
                     <span className="material-symbols-outlined text-[96px]">
-                      {iconFor(o.itemName)}
+                      {getCategory(o.category).icon}
                     </span>
                   </div>
                   <div
                     className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
                   >
                     {badge.label}
+                  </div>
+                  <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-tight text-on-surface shadow-sm backdrop-blur">
+                    <span className="material-symbols-outlined text-xs">
+                      {getCategory(o.category).icon}
+                    </span>
+                    {getCategory(o.category).label}
                   </div>
                 </div>
                 <div className="p-5">

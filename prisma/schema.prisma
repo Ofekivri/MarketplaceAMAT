@@ -23,6 +23,7 @@ model Offer {
   id              String   @id @default(cuid())
   offeringUserId  String
   offeringUser    User     @relation("OfferingUser", fields: [offeringUserId], references: [id])
+  category        String   @default("OTHER") // see CATEGORIES in src/lib/categories.ts
   itemName        String
   description     String
   quantity        Int
@@ -35,6 +36,9 @@ model Offer {
   claim           Claim?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
 }
 
 model Claim {
