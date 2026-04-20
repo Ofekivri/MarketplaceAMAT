@@ -7,7 +7,7 @@ import { TopBar } from "@/components/TopBar";
 import { MobileNav } from "@/components/MobileNav";
 
 export const metadata: Metadata = {
-  title: "Asset Alert | Dashboard",
+  title: "SecondLife | Dashboard",
   description: "Applied Materials Israel internal asset reuse marketplace",
 };
 

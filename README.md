@@ -1,4 +1,4 @@
-# Asset Alert System — MVP
+# SecondLife — MVP
 
 Internal marketplace for Applied Materials Israel: a department posts an item it's about to scrap, other departments see it and can claim it in one click.
 

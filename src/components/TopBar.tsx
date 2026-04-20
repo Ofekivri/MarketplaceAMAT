@@ -15,7 +15,7 @@ export function TopBar({ user, users, unreadCount }: Props) {
     <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-[#faf8ff]/80 bg-opacity-80 px-8 py-4 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.04)] backdrop-blur-xl">
       <div className="flex items-center gap-8">
         <h1 className="font-['Inter'] text-2xl font-black uppercase tracking-tighter text-[#191b23]">
-          Asset Alert
+          SecondLife
         </h1>
         <div className="hidden w-96 items-center gap-2 rounded-full bg-surface-container px-4 py-2 lg:flex">
           <span className="material-symbols-outlined text-outline">search</span>

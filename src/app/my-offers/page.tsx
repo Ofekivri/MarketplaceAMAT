@@ -4,7 +4,7 @@ import { formatCondition, formatDate, daysUntil } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "My Offers | Asset Alert" };
+export const metadata = { title: "My Offers | SecondLife" };
 
 function iconFor(itemName: string): string {
   const n = itemName.toLowerCase();
