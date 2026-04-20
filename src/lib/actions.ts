@@ -369,25 +369,35 @@ export async function claimOfferAction(formData: FormData) {
     include: { offeringUser: true },
   });
   if (!offer) throw new Error("Offer not found");
-  if (offer.status !== "AVAILABLE") throw new Error("Offer is not available");
   if (offer.offeringUserId === user.id) {
     throw new Error("You cannot claim your own offer");
   }
 
-  await prisma.$transaction([
-    prisma.claim.create({
-      data: {
-        offerId,
-        claimingUserId: user.id,
-        notes,
-        status: "PENDING",
-      },
-    }),
-    prisma.offer.update({
-      where: { id: offerId },
-      data: { status: "CLAIMED" },
-    }),
-  ]);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.offer.updateMany({
+        where: { id: offerId, status: "AVAILABLE" },
+        data: { status: "CLAIMED" },
+      });
+      if (count === 0) {
+        throw new Error("Offer is not available");
+      }
+      await tx.claim.create({
+        data: {
+          offerId,
+          claimingUserId: user.id,
+          notes,
+          status: "PENDING",
+        },
+      });
+    });
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === "P2002") {
+      throw new Error("Offer is not available");
+    }
+    throw err;
+  }
 
   await notify({
     userId: offer.offeringUserId,
