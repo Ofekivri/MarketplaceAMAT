@@ -414,6 +414,7 @@ export async function claimOfferAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath(`/offers/${offerId}`);
+  redirect(`/offers/${offerId}?claimed=1`);
 }
 
 export async function cancelClaimAction(formData: FormData) {
