@@ -46,8 +46,52 @@ export async function createOfferAction(formData: FormData) {
     link: `/offers/${offer.id}`,
   });
 
+  const haystack = `${itemName} ${description} ${location}`.toLowerCase();
+  const subs = await prisma.searchSubscription.findMany({
+    where: { userId: { not: user.id } },
+  });
+  const matches = subs.filter((s) =>
+    haystack.includes(s.query.toLowerCase()),
+  );
+  await Promise.all(
+    matches.map((s) =>
+      notify({
+        userId: s.userId,
+        title: `New match for "${s.query}"`,
+        body: `${itemName} just posted by ${user.department} at ${location}.`,
+        link: `/offers/${offer.id}`,
+      }),
+    ),
+  );
+
   revalidatePath("/");
   redirect(`/offers/${offer.id}`);
+}
+
+export async function createSearchSubscriptionAction(formData: FormData) {
+  const user = await requireUser();
+  const query = String(formData.get("query") ?? "").trim();
+  if (!query) throw new Error("Search text is required");
+  const existing = await prisma.searchSubscription.findFirst({
+    where: { userId: user.id, query: { equals: query, mode: "insensitive" } },
+  });
+  if (!existing) {
+    await prisma.searchSubscription.create({
+      data: { userId: user.id, query },
+    });
+  }
+  revalidatePath("/watchlist");
+  redirect("/watchlist");
+}
+
+export async function deleteSearchSubscriptionAction(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await prisma.searchSubscription.deleteMany({
+    where: { id, userId: user.id },
+  });
+  revalidatePath("/watchlist");
 }
 
 export async function updateOfferAction(formData: FormData) {
