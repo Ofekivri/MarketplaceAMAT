@@ -92,8 +92,8 @@ export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
                 href={item.href}
                 className={
                   active
-                    ? "flex items-center gap-3 rounded-full bg-[#2563eb] px-4 py-2.5 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 ease-in-out"
-                    : "flex items-center gap-3 px-4 py-2.5 text-[#434655] transition-all duration-300 hover:bg-[#faf8ff]/50 hover:text-[#191b23]"
+                    ? "flex items-center gap-3 rounded-full bg-[#2563eb] px-4 py-2.5 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#ededf9]"
+                    : "flex items-center gap-3 rounded-full px-4 py-2.5 text-[#434655] transition-all duration-300 hover:bg-[#faf8ff]/50 hover:text-[#191b23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#ededf9]"
                 }
               >
                 <span
@@ -121,7 +121,7 @@ export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
         <div className="mt-8 px-2">
           <Link
             href="/offers/new"
-            className="block w-full rounded-xl bg-gradient-to-r from-primary to-primary-container py-4 text-center font-bold text-white shadow-md transition-all hover:scale-[1.02] active:scale-95"
+            className="block w-full rounded-xl bg-gradient-to-r from-primary to-primary-container py-4 text-center font-bold text-white shadow-md transition-all hover:scale-[1.02] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#ededf9]"
           >
             Create Listing
           </Link>
@@ -132,7 +132,7 @@ export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
             <Link
               key={item.label}
               href={item.href}
-              className="flex items-center gap-3 px-4 py-2 text-[#434655] transition-all duration-300 hover:text-[#191b23]"
+              className="flex items-center gap-3 rounded-full px-4 py-2 text-[#434655] transition-all duration-300 hover:text-[#191b23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#ededf9]"
             >
               <span className="material-symbols-outlined">{item.icon}</span>
               <span>{item.label}</span>

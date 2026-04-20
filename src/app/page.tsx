@@ -501,7 +501,8 @@ export default async function DashboardPage({
               <Link
                 key={o.id}
                 href={`/offers/${o.id}`}
-                className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl"
+                aria-label={`View and claim ${o.itemName}`}
+                className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
                   <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
@@ -576,9 +577,13 @@ export default async function DashboardPage({
                       </span>
                     </div>
                   </div>
-                  <div className="w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
+                  <span
+                    role="button"
+                    aria-hidden="true"
+                    className="block w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white"
+                  >
                     Claim Asset
-                  </div>
+                  </span>
                 </div>
               </Link>
             );

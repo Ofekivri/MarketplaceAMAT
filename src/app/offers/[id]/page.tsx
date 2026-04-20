@@ -6,6 +6,8 @@ import {
 } from "@/lib/actions";
 import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/format";
 import { PostedCelebration } from "@/components/PostedCelebration";
+import { ClaimSuccessToast } from "@/components/ClaimSuccessToast";
+import { CompleteClaimButton } from "@/components/CompleteClaimButton";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -14,10 +16,10 @@ export default async function OfferDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ posted?: string }>;
+  searchParams: Promise<{ posted?: string; claimed?: string }>;
 }) {
   const { id } = await params;
-  const { posted } = await searchParams;
+  const { posted, claimed } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -42,6 +44,14 @@ export default async function OfferDetailPage({
 
       {posted === "1" && isOwn && offer.status === "AVAILABLE" && (
         <PostedCelebration itemName={offer.itemName} />
+      )}
+
+      {claimed === "1" && isClaimer && (
+        <ClaimSuccessToast
+          itemName={offer.itemName}
+          department={offer.offeringUser.department}
+          location={offer.location}
+        />
       )}
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -210,15 +220,7 @@ export default async function OfferDetailPage({
           {offer.status === "CLAIMED" && (isOwn || isClaimer) && (
             <form action={completeClaimAction}>
               <input type="hidden" name="offerId" value={offer.id} />
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-xl bg-green-600 px-8 py-5 text-lg font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:bg-green-700 hover:shadow-green-500/40 active:scale-[0.99]"
-              >
-                <span className="material-symbols-outlined text-2xl">
-                  check_circle
-                </span>
-                {isClaimer ? "I Received This Item" : "Confirm Handover"}
-              </button>
+              <CompleteClaimButton isClaimer={isClaimer} />
               <p className="mt-2 text-center text-xs text-gray-500">
                 {isClaimer
                   ? "Marks the item as successfully picked up and redeployed."

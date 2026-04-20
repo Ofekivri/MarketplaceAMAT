@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/session";
 import { createOfferAction } from "@/lib/actions";
 import { CategoryFields } from "@/components/CategoryFields";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Post New Item | SecondLife" };
@@ -66,16 +67,18 @@ export default async function NewOfferPage() {
             <CardHeader icon="description" title="Details & Specifications" />
             <div className="space-y-6">
               <CategoryFields />
-              <Field label="Item Name">
+              <Field label="Item Name" htmlFor="itemName">
                 <input
+                  id="itemName"
                   name="itemName"
                   required
                   className="input"
                   placeholder="e.g. 3x Office Chairs (Like New)"
                 />
               </Field>
-              <Field label="Detailed Description">
+              <Field label="Detailed Description" htmlFor="description">
                 <textarea
+                  id="description"
                   name="description"
                   rows={6}
                   className="input"
@@ -92,8 +95,9 @@ export default async function NewOfferPage() {
             <CardHeader icon="inventory_2" title="Classification" />
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Quantity">
+                <Field label="Quantity" htmlFor="quantity">
                   <input
+                    id="quantity"
                     name="quantity"
                     type="number"
                     min={1}
@@ -102,8 +106,9 @@ export default async function NewOfferPage() {
                     className="input"
                   />
                 </Field>
-                <Field label="Condition">
+                <Field label="Condition" htmlFor="condition">
                   <select
+                    id="condition"
                     name="condition"
                     defaultValue="GOOD"
                     className="input"
@@ -116,9 +121,10 @@ export default async function NewOfferPage() {
                 </Field>
               </div>
 
-              <Field label="Scrap Deadline">
+              <Field label="Scrap Deadline" htmlFor="daysUntilScrap">
                 <div className="relative">
                   <select
+                    id="daysUntilScrap"
                     name="daysUntilScrap"
                     defaultValue={5}
                     className="input appearance-none pr-10"
@@ -137,8 +143,13 @@ export default async function NewOfferPage() {
                 </p>
               </Field>
 
-              <Field label="Estimated value (NIS)" hint="Optional, drives the analytics dashboard.">
+              <Field
+                label="Estimated value (NIS)"
+                htmlFor="estimatedValue"
+                hint="Optional, drives the analytics dashboard."
+              >
                 <input
+                  id="estimatedValue"
                   name="estimatedValue"
                   type="number"
                   min={0}
@@ -152,12 +163,15 @@ export default async function NewOfferPage() {
           <Card>
             <CardHeader icon="location_on" title="Facility Location" />
             <div className="space-y-4">
-              <input
-                name="location"
-                required
-                className="input"
-                placeholder="e.g. Building 2, 3rd Floor"
-              />
+              <Field label="Location description" htmlFor="location">
+                <input
+                  id="location"
+                  name="location"
+                  required
+                  className="input"
+                  placeholder="e.g. Building 2, 3rd Floor"
+                />
+              </Field>
               <div className="relative h-48 overflow-hidden rounded-lg bg-gradient-to-br from-surface-container-high via-surface-container to-primary-fixed/40">
                 <div className="absolute inset-0 bg-primary/10" />
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -183,13 +197,12 @@ export default async function NewOfferPage() {
               <p className="mb-4 text-sm font-bold uppercase tracking-widest text-white opacity-80">
                 Final Review
               </p>
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-container-lowest px-8 py-4 text-lg font-bold text-primary shadow-lg transition-all hover:scale-105 active:scale-95"
-              >
-                <span className="material-symbols-outlined">publish</span>
-                Publish Asset Listing
-              </button>
+              <SubmitButton
+                icon="publish"
+                label="Publish Asset Listing"
+                pendingLabel="Publishing…"
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-container-lowest px-8 py-4 text-lg font-bold text-primary shadow-lg transition-all hover:scale-105 active:scale-95 disabled:hover:scale-100"
+              />
               <p className="mt-4 text-xs text-white/70">
                 This will notify all departments via the in-app inbox.
               </p>
@@ -272,15 +285,20 @@ function CardHeader({
 function Field({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   hint?: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold uppercase tracking-widest text-on-surface-variant">
+      <label
+        htmlFor={htmlFor}
+        className="mb-2 block text-sm font-bold uppercase tracking-widest text-on-surface-variant"
+      >
         {label}
       </label>
       {children}

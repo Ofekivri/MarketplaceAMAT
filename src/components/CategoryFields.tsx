@@ -21,8 +21,13 @@ export function CategoryFields({
 
   return (
     <>
-      <Field label="Category" hint="Choose the closest match — used for search & filtering.">
+      <Field
+        label="Category"
+        htmlFor="category"
+        hint="Choose the closest match — used for search & filtering."
+      >
         <select
+          id="category"
           name="category"
           value={category}
           onChange={(e) => {
@@ -43,8 +48,9 @@ export function CategoryFields({
         </select>
       </Field>
 
-      <Field label="Subcategory">
+      <Field label="Subcategory" htmlFor="subCategory">
         <select
+          id="subCategory"
           name="subCategory"
           value={subCategory}
           onChange={(e) => setSubCategory(e.target.value)}
@@ -66,15 +72,20 @@ export function CategoryFields({
 function Field({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   hint?: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold uppercase tracking-widest text-on-surface-variant">
+      <label
+        htmlFor={htmlFor}
+        className="mb-2 block text-sm font-bold uppercase tracking-widest text-on-surface-variant"
+      >
         {label}
       </label>
       {children}
