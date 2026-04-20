@@ -58,18 +58,28 @@ export async function createOfferAction(formData: FormData) {
   const matches = subs.filter((s) =>
     haystack.includes(s.query.toLowerCase()),
   );
-  await Promise.all(
-    matches.map((s) =>
-      notify({
-        userId: s.userId,
-        title: `New match for "${s.query}"`,
-        body: `${itemName} just posted by ${user.department} at ${location}.`,
-        link: `/offers/${offer.id}`,
-      }),
-    ),
-  );
+  if (matches.length > 0) {
+    await prisma.searchSubscriptionMatch.createMany({
+      data: matches.map((s) => ({
+        subscriptionId: s.id,
+        offerId: offer.id,
+      })),
+      skipDuplicates: true,
+    });
+    await Promise.all(
+      matches.map((s) =>
+        notify({
+          userId: s.userId,
+          title: `New match for "${s.query}"`,
+          body: `${itemName} just posted by ${user.department} at ${location}.`,
+          link: `/watchlist`,
+        }),
+      ),
+    );
+  }
 
   revalidatePath("/");
+  revalidatePath("/watchlist");
   redirect(`/offers/${offer.id}?posted=1`);
 }
 
@@ -97,6 +107,22 @@ export async function deleteSearchSubscriptionAction(formData: FormData) {
     where: { id, userId: user.id },
   });
   revalidatePath("/watchlist");
+}
+
+export async function dismissSearchMatchAction(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await prisma.searchSubscriptionMatch.updateMany({
+    where: {
+      id,
+      dismissedAt: null,
+      subscription: { userId: user.id },
+    },
+    data: { dismissedAt: new Date() },
+  });
+  revalidatePath("/watchlist");
+  revalidatePath("/", "layout");
 }
 
 export async function updateOfferAction(formData: FormData) {

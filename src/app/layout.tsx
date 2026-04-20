@@ -20,11 +20,19 @@ export default async function RootLayout({
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
   ]);
-  const unreadCount = user
-    ? await prisma.notification.count({
-        where: { userId: user.id, readAt: null },
-      })
-    : 0;
+  const [unreadCount, watchlistCount] = user
+    ? await Promise.all([
+        prisma.notification.count({
+          where: { userId: user.id, readAt: null },
+        }),
+        prisma.searchSubscriptionMatch.count({
+          where: {
+            dismissedAt: null,
+            subscription: { userId: user.id },
+          },
+        }),
+      ])
+    : [0, 0];
 
   return (
     <html lang="en" className="light">
@@ -39,7 +47,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="flex min-h-screen overflow-hidden bg-surface text-on-surface">
-        <Sidebar />
+        <Sidebar watchlistCount={watchlistCount} />
         <main className="flex h-screen flex-1 flex-col overflow-y-auto">
           <TopBar user={user} users={allUsers} unreadCount={unreadCount} />
           <div className="mx-auto w-full max-w-7xl flex-1 p-8 pb-24 md:pb-8">

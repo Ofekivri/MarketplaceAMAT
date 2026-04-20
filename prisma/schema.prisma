@@ -36,6 +36,7 @@ model Offer {
   status          String   @default("AVAILABLE") // AVAILABLE | CLAIMED | COMPLETED | SCRAPPED
   images          String[] @default([]) // data URLs
   claim           Claim?
+  subscriptionMatches SearchSubscriptionMatch[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -67,11 +68,25 @@ model Notification {
 }
 
 model SearchSubscription {
-  id        String   @id @default(cuid())
+  id        String                    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User                      @relation(fields: [userId], references: [id])
   query     String
-  createdAt DateTime @default(now())
+  matches   SearchSubscriptionMatch[]
+  createdAt DateTime                  @default(now())
 
   @@index([userId])
+}
+
+model SearchSubscriptionMatch {
+  id             String             @id @default(cuid())
+  subscriptionId String
+  subscription   SearchSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  offerId        String
+  offer          Offer              @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  dismissedAt    DateTime?
+  createdAt      DateTime           @default(now())
+
+  @@unique([subscriptionId, offerId])
+  @@index([subscriptionId, dismissedAt])
 }

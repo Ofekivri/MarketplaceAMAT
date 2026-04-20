@@ -8,6 +8,7 @@ type Item = {
   icon: string;
   label: string;
   matchPaths?: string[];
+  badgeKey?: "watchlist";
 };
 
 const primary: Item[] = [
@@ -29,6 +30,7 @@ const primary: Item[] = [
     icon: "notifications_active",
     label: "Watchlist",
     matchPaths: ["/watchlist"],
+    badgeKey: "watchlist",
   },
   {
     href: "/analytics",
@@ -49,8 +51,11 @@ const footer: Item[] = [
   { href: "/login", icon: "switch_account", label: "Switch user" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
   const pathname = usePathname();
+  const badges: Record<NonNullable<Item["badgeKey"]>, number> = {
+    watchlist: watchlistCount,
+  };
 
   return (
     <aside className="z-50 hidden h-screen w-64 flex-col border-r-0 bg-[#ededf9] text-sm font-medium tracking-wide md:flex">
@@ -80,6 +85,7 @@ export function Sidebar() {
               item.matchPaths?.some((p) =>
                 p === "/" ? pathname === "/" : pathname.startsWith(p),
               ) ?? false;
+            const badge = item.badgeKey ? badges[item.badgeKey] : 0;
             return (
               <Link
                 key={`${item.label}-${i}`}
@@ -96,7 +102,17 @@ export function Sidebar() {
                 >
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {badge > 0 && (
+                  <span
+                    className={`inline-flex min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold text-white ${
+                      active ? "ring-2 ring-white/40" : ""
+                    }`}
+                    aria-label={`${badge} new`}
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
