@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { createOfferAction } from "@/lib/actions";
-import { CATEGORIES } from "@/lib/categories";
+import { CategoryFields } from "@/components/CategoryFields";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Post New Item | Asset Alert" };
@@ -65,15 +65,7 @@ export default async function NewOfferPage() {
           <Card>
             <CardHeader icon="description" title="Details & Specifications" />
             <div className="space-y-6">
-              <Field label="Category" hint="Choose the closest match — used for search & filtering.">
-                <select name="category" defaultValue="OTHER" required className="input">
-                  {CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <CategoryFields />
               <Field label="Item Name">
                 <input
                   name="itemName"

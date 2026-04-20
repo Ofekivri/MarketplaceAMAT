@@ -9,6 +9,7 @@ import {
   completeClaimAction,
 } from "@/lib/actions";
 import { formatRelative } from "@/lib/format";
+import { CategoryFields } from "@/components/CategoryFields";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import ImageUploader from "./ImageUploader";
@@ -88,6 +89,11 @@ export default async function EditOfferPage({
             <Card>
               <CardHeader icon="description" title="Details & Specifications" />
               <div className="space-y-6">
+                <CategoryFields
+                  defaultCategory={offer.category}
+                  defaultSubCategory={offer.subCategory}
+                  disabled={readOnly}
+                />
                 <Field label="Item Name">
                   <input
                     name="itemName"

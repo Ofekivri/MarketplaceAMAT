@@ -3,7 +3,7 @@
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify, notifyAllExcept } from "./notify";
-import { isValidCategory } from "./categories";
+import { isValidCategory, isValidSubCategory } from "./categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -11,6 +11,10 @@ export async function createOfferAction(formData: FormData) {
   const user = await requireUser();
   const categoryRaw = String(formData.get("category") ?? "").trim();
   const category = isValidCategory(categoryRaw) ? categoryRaw : "OTHER";
+  const subCategoryRaw = String(formData.get("subCategory") ?? "").trim();
+  const subCategory = isValidSubCategory(category, subCategoryRaw)
+    ? subCategoryRaw
+    : "";
   const itemName = String(formData.get("itemName") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const quantity = Number(formData.get("quantity") ?? 1);
@@ -30,6 +34,7 @@ export async function createOfferAction(formData: FormData) {
     data: {
       offeringUserId: user.id,
       category,
+      subCategory,
       itemName,
       description,
       quantity,
@@ -67,6 +72,12 @@ export async function updateOfferAction(formData: FormData) {
     throw new Error(`Cannot edit a ${offer.status.toLowerCase()} offer`);
   }
 
+  const categoryRaw = String(formData.get("category") ?? "").trim();
+  const category = isValidCategory(categoryRaw) ? categoryRaw : offer.category;
+  const subCategoryRaw = String(formData.get("subCategory") ?? "").trim();
+  const subCategory = isValidSubCategory(category, subCategoryRaw)
+    ? subCategoryRaw
+    : "";
   const itemName = String(formData.get("itemName") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const quantity = Number(formData.get("quantity") ?? 1);
@@ -86,6 +97,8 @@ export async function updateOfferAction(formData: FormData) {
   await prisma.offer.update({
     where: { id: offerId },
     data: {
+      category,
+      subCategory,
       itemName,
       description,
       quantity,

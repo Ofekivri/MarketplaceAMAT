@@ -323,11 +323,18 @@ export default async function DashboardPage({
                         <p className="truncate text-sm font-bold text-on-surface">
                           {o.itemName}
                         </p>
-                        <span
-                          className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-white ${badge.bg}`}
-                        >
-                          {badge.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-white ${badge.bg}`}
+                          >
+                            {badge.label}
+                          </span>
+                          {o.subCategory && (
+                            <span className="truncate text-[10px] text-outline">
+                              {o.subCategory}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="truncate text-xs text-on-surface-variant">
@@ -389,9 +396,16 @@ export default async function DashboardPage({
                 </div>
                 <div className="p-5">
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="text-lg font-bold text-on-surface">
-                      {o.itemName}
-                    </h3>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-on-surface">
+                        {o.itemName}
+                      </h3>
+                      {o.subCategory && (
+                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                          {getCategory(o.category).label} · {o.subCategory}
+                        </p>
+                      )}
+                    </div>
                     <span className="whitespace-nowrap font-black text-primary">
                       {o.estimatedValue > 0
                         ? `₪${o.estimatedValue.toLocaleString()}`

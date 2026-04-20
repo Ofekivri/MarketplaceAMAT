@@ -24,6 +24,7 @@ model Offer {
   offeringUserId  String
   offeringUser    User     @relation("OfferingUser", fields: [offeringUserId], references: [id])
   category        String   @default("OTHER") // see CATEGORIES in src/lib/categories.ts
+  subCategory     String   @default("") // see subcategories in src/lib/categories.ts
   itemName        String
   description     String
   quantity        Int
