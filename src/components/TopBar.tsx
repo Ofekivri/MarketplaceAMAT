@@ -17,15 +17,6 @@ export function TopBar({ user, users, unreadCount }: Props) {
         <h1 className="font-['Inter'] text-2xl font-black uppercase tracking-tighter text-[#191b23]">
           SecondLife
         </h1>
-        <div className="hidden w-96 items-center gap-2 rounded-full bg-surface-container px-4 py-2 lg:flex">
-          <span className="material-symbols-outlined text-outline">search</span>
-          <input
-            className="w-full border-none bg-transparent text-sm placeholder:text-outline focus:ring-0 focus:outline-none"
-            placeholder="Search industrial inventory..."
-            type="text"
-            disabled
-          />
-        </div>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
