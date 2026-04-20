@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { formatCondition, daysUntil } from "@/lib/format";
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 
 function iconFor(itemName: string): string {
   const n = itemName.toLowerCase();
@@ -30,8 +31,14 @@ function conditionBadge(cond: string) {
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await getCurrentUser();
+  const { q: rawQ } = await searchParams;
+  const q = rawQ?.trim() ?? "";
 
   if (!user) {
     return (
@@ -50,28 +57,36 @@ export default async function DashboardPage() {
     );
   }
 
-  const [liveOffers, allLiveOffers, userClaims, myOffers] = await Promise.all([
+  const searchFilter: Prisma.OfferWhereInput = q
+    ? {
+        OR: [
+          { itemName: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { location: { contains: q, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
+  const [liveOffers, allLiveOffers, activeClaimCount] = await Promise.all([
     prisma.offer.findMany({
-      where: { status: "AVAILABLE", offeringUserId: { not: user.id } },
+      where: {
+        status: "AVAILABLE",
+        offeringUserId: { not: user.id },
+        ...searchFilter,
+      },
       include: { offeringUser: true },
       orderBy: { scrapDate: "asc" },
-      take: 4,
+      take: 6,
     }),
     prisma.offer.findMany({
       where: { status: "AVAILABLE" },
       select: { estimatedValue: true },
     }),
-    prisma.claim.findMany({
-      where: { claimingUserId: user.id },
-      include: { offer: true },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-    }),
-    prisma.offer.findMany({
-      where: { offeringUserId: user.id },
-      include: { claim: true },
-      orderBy: { createdAt: "desc" },
-      take: 6,
+    prisma.claim.count({
+      where: {
+        claimingUserId: user.id,
+        status: { in: ["PENDING", "PICKUP_SCHEDULED"] },
+      },
     }),
   ]);
 
@@ -79,15 +94,12 @@ export default async function DashboardPage() {
     (s, o) => s + o.estimatedValue,
     0,
   );
-  const activeClaimsCount = userClaims.filter((c) =>
-    ["PENDING", "PICKUP_SCHEDULED"].includes(c.status),
-  ).length;
   const liveOffersCount = allLiveOffers.length;
 
   return (
     <div>
       {/* Hero / bento grid */}
-      <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-4">
+      <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-8 text-white shadow-xl md:col-span-2">
           <div className="relative z-10">
             <p className="mb-1 text-xs font-bold uppercase tracking-widest text-primary-fixed">
@@ -124,11 +136,11 @@ export default async function DashboardPage() {
           icon="check_circle"
           iconColor="text-tertiary"
           label="Active Claims"
-          value={activeClaimsCount.toString()}
+          value={activeClaimCount.toString()}
           sub={
-            activeClaimsCount === 0
+            activeClaimCount === 0
               ? "None pending"
-              : `${activeClaimsCount} awaiting pickup`
+              : `${activeClaimCount} awaiting pickup`
           }
         />
         <StatCard
@@ -144,261 +156,122 @@ export default async function DashboardPage() {
         />
       </section>
 
-      {/* Asymmetric main grid */}
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
-        {/* Live offers */}
-        <div className="lg:col-span-2">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-on-surface">
-                Live Offers
-              </h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Available for immediate claim or salvage
-              </p>
-            </div>
+      {/* Search + header */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-on-surface">Live Offers</h2>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            {q
+              ? `Search results for "${q}"`
+              : "Available for immediate claim or salvage"}
+          </p>
+        </div>
+        <form action="/" method="GET" className="flex w-full max-w-md items-center gap-2 rounded-full bg-surface-container px-4 py-2">
+          <span className="material-symbols-outlined text-outline">search</span>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search by item, description, or location..."
+            className="w-full border-none bg-transparent text-sm placeholder:text-outline focus:outline-none focus:ring-0"
+          />
+          {q && (
             <Link
-              href="/offers/new"
-              className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+              href="/"
+              aria-label="Clear search"
+              className="rounded-full p-1 text-outline hover:bg-surface-container-high"
             >
-              Post item{" "}
-              <span className="material-symbols-outlined text-sm">
-                arrow_forward
-              </span>
+              <span className="material-symbols-outlined text-sm">close</span>
             </Link>
-          </div>
-
-          {liveOffers.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-lowest p-10 text-center text-on-surface-variant">
-              No live offers right now from other departments.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {liveOffers.map((o) => {
-                const days = daysUntil(o.scrapDate);
-                const urgent = days <= 1;
-                const badge = conditionBadge(o.condition);
-                return (
-                  <Link
-                    key={o.id}
-                    href={`/offers/${o.id}`}
-                    className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl"
-                  >
-                    <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
-                      <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
-                        <span className="material-symbols-outlined text-[96px]">
-                          {iconFor(o.itemName)}
-                        </span>
-                      </div>
-                      <div
-                        className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
-                      >
-                        {badge.label}
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      <div className="mb-2 flex items-start justify-between gap-2">
-                        <h3 className="text-lg font-bold text-on-surface">
-                          {o.itemName}
-                        </h3>
-                        <span className="whitespace-nowrap font-black text-primary">
-                          {o.estimatedValue > 0
-                            ? `₪${o.estimatedValue.toLocaleString()}`
-                            : "—"}
-                        </span>
-                      </div>
-                      <div className="mb-6 flex flex-wrap gap-y-2">
-                        <div className="flex w-1/2 items-center gap-2">
-                          <span className="material-symbols-outlined text-xs text-outline">
-                            domain
-                          </span>
-                          <span className="text-xs font-medium text-on-surface-variant">
-                            {o.offeringUser.department}
-                          </span>
-                        </div>
-                        <div className="flex w-1/2 items-center gap-2">
-                          <span className="material-symbols-outlined text-xs text-outline">
-                            location_on
-                          </span>
-                          <span className="truncate text-xs font-medium text-on-surface-variant">
-                            {o.location}
-                          </span>
-                        </div>
-                        <div className="flex w-full items-center gap-2">
-                          <span className="material-symbols-outlined text-xs text-outline">
-                            schedule
-                          </span>
-                          <span
-                            className={`text-xs font-bold uppercase tracking-tighter ${urgent ? "text-error" : "text-on-surface-variant"}`}
-                          >
-                            Deadline:{" "}
-                            {days > 0 ? `${days}d left` : "expired"}
-                          </span>
-                        </div>
-                        <div className="flex w-full items-center gap-2">
-                          <span className="material-symbols-outlined text-xs text-outline">
-                            inventory_2
-                          </span>
-                          <span className="text-xs font-medium text-on-surface-variant">
-                            qty {o.quantity} · {formatCondition(o.condition)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
-                        Claim Asset
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
           )}
-        </div>
-
-        {/* Recent claims sidebar */}
-        <div className="lg:col-span-1">
-          <div className="h-fit rounded-xl bg-surface-container-low p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-on-surface">
-                Recent Claims
-              </h2>
-              <span className="rounded bg-surface-container-highest px-2 py-1 text-[10px] font-black uppercase">
-                {activeClaimsCount > 0 ? "Active" : "None"}
-              </span>
-            </div>
-
-            {userClaims.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">
-                You haven&apos;t claimed anything yet. Browse live offers on the
-                left to start.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {userClaims.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/offers/${c.offerId}`}
-                    className="group flex items-center gap-4 rounded-lg bg-surface-container-lowest p-4 transition-all hover:shadow-sm"
-                  >
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-primary-fixed text-primary">
-                      <span className="material-symbols-outlined">
-                        {iconFor(c.offer.itemName)}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-on-surface">
-                        {c.offer.itemName}
-                      </p>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
-                        {c.status.replace("_", " ").toLowerCase()}
-                      </p>
-                    </div>
-                    <div
-                      className={`h-2 w-2 rounded-full ${
-                        c.status === "COMPLETED"
-                          ? "bg-tertiary"
-                          : c.status === "CANCELLED"
-                            ? "bg-error"
-                            : "bg-primary"
-                      }`}
-                    />
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            <Link
-              href="/inbox"
-              className="mt-6 flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-on-surface-variant transition-colors hover:text-primary"
-            >
-              View Notifications{" "}
-              <span className="material-symbols-outlined text-sm">history</span>
-            </Link>
-          </div>
-
-          <div className="relative mt-10 overflow-hidden rounded-xl bg-[#191b23] p-6 text-white">
-            <h4 className="relative z-10 text-lg font-bold">
-              Coming next iteration
-            </h4>
-            <p className="relative z-10 mt-1 text-sm text-slate-400">
-              Real email alerts (SendGrid), LDAP login, photo uploads, advanced
-              search.
-            </p>
-            <Link
-              href="/analytics"
-              className="relative z-10 mt-4 inline-block rounded-lg bg-white px-4 py-2 text-xs font-black uppercase tracking-tight text-[#191b23]"
-            >
-              See Analytics
-            </Link>
-            <div className="absolute -bottom-4 -right-4 opacity-10">
-              <span className="material-symbols-outlined text-8xl">
-                factory
-              </span>
-            </div>
-          </div>
-        </div>
+        </form>
       </div>
 
-      {/* My Offers */}
-      {myOffers.length > 0 && (
-        <div className="mt-12">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-on-surface">My Offers</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Items you&apos;ve listed — track their status here
-              </p>
-            </div>
-            <Link
-              href="/offers/new"
-              className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
-            >
-              Post another{" "}
-              <span className="material-symbols-outlined text-sm">add</span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {myOffers.map((o) => {
-              const badge = conditionBadge(o.condition);
-              const statusColor =
-                o.status === "AVAILABLE"
-                  ? "bg-tertiary"
-                  : o.status === "CLAIMED"
-                    ? "bg-primary"
-                    : o.status === "COMPLETED"
-                      ? "bg-outline"
-                      : "bg-error";
-              return (
-                <Link
-                  key={o.id}
-                  href={`/offers/${o.id}`}
-                  className="group flex items-center gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-sm transition-all hover:shadow-md"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
-                    <span className="material-symbols-outlined">
+      {/* Offer grid */}
+      {liveOffers.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-lowest p-10 text-center text-on-surface-variant">
+          {q
+            ? `No offers match "${q}". Try a different search.`
+            : "No live offers right now from other departments."}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {liveOffers.map((o) => {
+            const days = daysUntil(o.scrapDate);
+            const urgent = days <= 1;
+            const badge = conditionBadge(o.condition);
+            return (
+              <Link
+                key={o.id}
+                href={`/offers/${o.id}`}
+                className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl"
+              >
+                <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
+                  <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
+                    <span className="material-symbols-outlined text-[96px]">
                       {iconFor(o.itemName)}
                     </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold text-on-surface">
-                      {o.itemName}
-                    </p>
-                    <p className="text-xs text-on-surface-variant">
-                      qty {o.quantity} · {badge.label}
-                    </p>
-                    <p className="mt-1 text-xs text-on-surface-variant">
-                      {o.claim ? "1 claim" : "No claims yet"}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-tight text-white ${statusColor}`}
+                  <div
+                    className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
                   >
-                    {o.status.toLowerCase()}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+                    {badge.label}
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <h3 className="text-lg font-bold text-on-surface">
+                      {o.itemName}
+                    </h3>
+                    <span className="whitespace-nowrap font-black text-primary">
+                      {o.estimatedValue > 0
+                        ? `₪${o.estimatedValue.toLocaleString()}`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="mb-6 flex flex-wrap gap-y-2">
+                    <div className="flex w-1/2 items-center gap-2">
+                      <span className="material-symbols-outlined text-xs text-outline">
+                        domain
+                      </span>
+                      <span className="text-xs font-medium text-on-surface-variant">
+                        {o.offeringUser.department}
+                      </span>
+                    </div>
+                    <div className="flex w-1/2 items-center gap-2">
+                      <span className="material-symbols-outlined text-xs text-outline">
+                        location_on
+                      </span>
+                      <span className="truncate text-xs font-medium text-on-surface-variant">
+                        {o.location}
+                      </span>
+                    </div>
+                    <div className="flex w-full items-center gap-2">
+                      <span className="material-symbols-outlined text-xs text-outline">
+                        schedule
+                      </span>
+                      <span
+                        className={`text-xs font-bold uppercase tracking-tighter ${urgent ? "text-error" : "text-on-surface-variant"}`}
+                      >
+                        Deadline:{" "}
+                        {days > 0 ? `${days}d left` : "expired"}
+                      </span>
+                    </div>
+                    <div className="flex w-full items-center gap-2">
+                      <span className="material-symbols-outlined text-xs text-outline">
+                        inventory_2
+                      </span>
+                      <span className="text-xs font-medium text-on-surface-variant">
+                        qty {o.quantity} · {formatCondition(o.condition)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
+                    Claim Asset
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
