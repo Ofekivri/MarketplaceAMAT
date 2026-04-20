@@ -3,7 +3,7 @@ import { createOfferAction } from "@/lib/actions";
 import { CategoryFields } from "@/components/CategoryFields";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "Post New Item | Asset Alert" };
+export const metadata = { title: "Post New Item | SecondLife" };
 
 export default async function NewOfferPage() {
   const user = await getCurrentUser();

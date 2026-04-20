@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "My Claims | Asset Alert" };
+export const metadata = { title: "My Claims | SecondLife" };
 
 function iconFor(itemName: string): string {
   const n = itemName.toLowerCase();

@@ -66,7 +66,7 @@ export function Sidebar() {
               </span>
             </div>
             <span className="text-lg font-bold text-[#191b23]">
-              Asset Alert
+              SecondLife
             </span>
           </div>
           <p className="text-xs font-normal text-on-surface-variant opacity-70">

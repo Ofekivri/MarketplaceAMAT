@@ -47,7 +47,7 @@ export default async function DashboardPage({
   if (!user) {
     return (
       <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-semibold">Welcome to Asset Alert</h1>
+        <h1 className="text-2xl font-semibold">Welcome to SecondLife</h1>
         <p className="mt-2 text-on-surface-variant">
           Stop scrapping things other departments need.
         </p>

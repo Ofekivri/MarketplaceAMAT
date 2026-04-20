@@ -14,7 +14,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import ImageUploader from "./ImageUploader";
 
-export const metadata = { title: "Edit Offer | Asset Alert" };
+export const metadata = { title: "Edit Offer | SecondLife" };
 
 export default async function EditOfferPage({
   params,
