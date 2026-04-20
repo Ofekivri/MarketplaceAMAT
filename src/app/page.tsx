@@ -99,34 +99,33 @@ export default async function DashboardPage({
   return (
     <div>
       {/* Hero / bento grid */}
-      <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-8 text-white shadow-xl md:col-span-2">
+      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-5 text-white shadow-md md:col-span-2">
           <div className="relative z-10">
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-primary-fixed">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-primary-fixed">
               Portfolio Value
             </p>
-            <h2 className="text-editorial-display text-5xl font-black">
+            <h2 className="text-3xl font-black">
               ₪{(portfolioValue / 1000).toFixed(1)}K
             </h2>
-            <p className="mt-4 max-w-xs text-sm text-primary-fixed/80">
-              Total estimated value of industrial assets currently in the live
-              pipeline.
+            <p className="mt-1 max-w-xs text-xs text-primary-fixed/80">
+              Total value of industrial assets in the live pipeline.
             </p>
           </div>
-          <div className="relative z-10 mt-8 flex items-center gap-4">
+          <div className="relative z-10 mt-3 flex items-center gap-3">
             <Link
               href="/analytics"
-              className="rounded-full bg-white px-6 py-2 text-sm font-bold text-primary shadow-sm"
+              className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-primary shadow-sm"
             >
               View Analytics
             </Link>
-            <span className="text-xs font-medium text-primary-fixed">
+            <span className="text-[10px] font-medium text-primary-fixed">
               Live across {new Set(liveOffers.map((o) => o.offeringUser.department)).size}+
               departments
             </span>
           </div>
           <div className="absolute -bottom-4 -right-4 opacity-10">
-            <span className="material-symbols-outlined text-[180px]">
+            <span className="material-symbols-outlined text-[120px]">
               precision_manufacturing
             </span>
           </div>
@@ -292,17 +291,17 @@ function StatCard({
   sub: string;
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.06)]">
+    <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-4 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.06)]">
       <div>
-        <span className={`material-symbols-outlined mb-2 ${iconColor}`}>
+        <span className={`material-symbols-outlined mb-1 text-lg ${iconColor}`}>
           {icon}
         </span>
-        <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
           {label}
         </p>
-        <h3 className="mt-1 text-3xl font-bold text-on-surface">{value}</h3>
+        <h3 className="mt-0.5 text-2xl font-bold text-on-surface">{value}</h3>
       </div>
-      <p className="text-xs text-on-surface-variant">{sub}</p>
+      <p className="mt-1 text-[10px] text-on-surface-variant">{sub}</p>
     </div>
   );
 }
