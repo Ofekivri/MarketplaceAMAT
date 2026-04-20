@@ -39,8 +39,10 @@ async function run(req: NextRequest, reset: boolean) {
 }
 
 export async function GET(req: NextRequest) {
-  // GET seeds only when DB is empty (idempotent — safe to hit).
-  return run(req, false);
+  // By default GET is idempotent (seeds only when empty). Pass ?reset=true
+  // to wipe and reseed from a browser without needing curl.
+  const reset = req.nextUrl.searchParams.get("reset") === "true";
+  return run(req, reset);
 }
 
 export async function POST(req: NextRequest) {
