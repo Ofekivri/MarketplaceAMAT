@@ -46,6 +46,231 @@ export async function createOfferAction(formData: FormData) {
   redirect(`/offers/${offer.id}`);
 }
 
+export async function updateOfferAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  if (!offerId) throw new Error("Missing offer id");
+
+  const offer = await prisma.offer.findUnique({
+    where: { id: offerId },
+    include: { claim: { include: { claimingUser: true } } },
+  });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can edit this offer");
+  }
+  if (offer.status === "SCRAPPED" || offer.status === "COMPLETED") {
+    throw new Error(`Cannot edit a ${offer.status.toLowerCase()} offer`);
+  }
+
+  const itemName = String(formData.get("itemName") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const quantity = Number(formData.get("quantity") ?? 1);
+  const condition = String(formData.get("condition") ?? "GOOD");
+  const location = String(formData.get("location") ?? "").trim();
+  const estimatedValue = Number(formData.get("estimatedValue") ?? 0);
+  const scrapDateRaw = String(formData.get("scrapDate") ?? "");
+
+  if (!itemName || !location) {
+    throw new Error("Item name and location are required");
+  }
+  const scrapDate = new Date(scrapDateRaw);
+  if (Number.isNaN(scrapDate.getTime())) {
+    throw new Error("Invalid scrap deadline");
+  }
+
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: {
+      itemName,
+      description,
+      quantity,
+      condition,
+      location,
+      scrapDate,
+      estimatedValue,
+    },
+  });
+
+  if (offer.claim && offer.claim.status !== "CANCELLED") {
+    await notify({
+      userId: offer.claim.claimingUserId,
+      title: `Offer updated: ${itemName}`,
+      body: `${user.department} updated details for an item you claimed.`,
+      link: `/offers/${offerId}`,
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/offers/${offerId}`);
+  revalidatePath(`/offers/${offerId}/edit`);
+  redirect(`/offers/${offerId}`);
+}
+
+export async function markOfferScrappedAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  if (!offerId) throw new Error("Missing offer id");
+
+  const offer = await prisma.offer.findUnique({
+    where: { id: offerId },
+    include: { claim: true },
+  });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can scrap this offer");
+  }
+  if (offer.status === "SCRAPPED") return;
+
+  const ops = [
+    prisma.offer.update({
+      where: { id: offerId },
+      data: { status: "SCRAPPED" },
+    }),
+  ];
+  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
+    ops.push(
+      prisma.claim.update({
+        where: { id: offer.claim.id },
+        data: { status: "CANCELLED" },
+      }) as never,
+    );
+  }
+  await prisma.$transaction(ops);
+
+  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
+    await notify({
+      userId: offer.claim.claimingUserId,
+      title: `Offer scrapped: ${offer.itemName}`,
+      body: `${user.department} marked this item as scrapped. Your claim was cancelled.`,
+      link: `/offers/${offerId}`,
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/offers/${offerId}`);
+  redirect(`/offers/${offerId}`);
+}
+
+export async function deleteOfferAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  if (!offerId) throw new Error("Missing offer id");
+
+  const offer = await prisma.offer.findUnique({
+    where: { id: offerId },
+    include: { claim: true },
+  });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can delete this offer");
+  }
+
+  const claimerId =
+    offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED"
+      ? offer.claim.claimingUserId
+      : null;
+
+  await prisma.$transaction([
+    ...(offer.claim ? [prisma.claim.delete({ where: { id: offer.claim.id } })] : []),
+    prisma.offer.delete({ where: { id: offerId } }),
+  ]);
+
+  if (claimerId) {
+    await notify({
+      userId: claimerId,
+      title: `Offer removed: ${offer.itemName}`,
+      body: `${user.department} deleted this item. It's no longer available.`,
+    });
+  }
+
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function addOfferImageAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  const file = formData.get("image");
+  if (!offerId) throw new Error("Missing offer id");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("No image provided");
+  }
+  if (file.size > 4 * 1024 * 1024) {
+    throw new Error("Image must be under 4MB");
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed");
+  }
+
+  const offer = await prisma.offer.findUnique({ where: { id: offerId } });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can add images");
+  }
+  if (offer.images.length >= 6) {
+    throw new Error("Maximum 6 images per offer");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: { images: { push: dataUrl } },
+  });
+
+  revalidatePath(`/offers/${offerId}`);
+  revalidatePath(`/offers/${offerId}/edit`);
+}
+
+export async function removeOfferImageAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  const index = Number(formData.get("index") ?? -1);
+  if (!offerId || index < 0) throw new Error("Missing offer id or index");
+
+  const offer = await prisma.offer.findUnique({ where: { id: offerId } });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can remove images");
+  }
+  if (index >= offer.images.length) throw new Error("Invalid image index");
+
+  const next = offer.images.filter((_, i) => i !== index);
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: { images: { set: next } },
+  });
+
+  revalidatePath(`/offers/${offerId}`);
+  revalidatePath(`/offers/${offerId}/edit`);
+}
+
+export async function setPrimaryOfferImageAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  const index = Number(formData.get("index") ?? -1);
+  if (!offerId || index < 0) throw new Error("Missing offer id or index");
+
+  const offer = await prisma.offer.findUnique({ where: { id: offerId } });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can reorder images");
+  }
+  if (index >= offer.images.length) throw new Error("Invalid image index");
+  if (index === 0) return;
+
+  const next = [offer.images[index], ...offer.images.filter((_, i) => i !== index)];
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: { images: { set: next } },
+  });
+
+  revalidatePath(`/offers/${offerId}`);
+  revalidatePath(`/offers/${offerId}/edit`);
+}
+
 export async function claimOfferAction(formData: FormData) {
   const user = await requireUser();
   const offerId = String(formData.get("offerId") ?? "");

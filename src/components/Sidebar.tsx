@@ -12,7 +12,6 @@ type Item = {
 
 const primary: Item[] = [
   { href: "/", icon: "dashboard", label: "Dashboard", matchPaths: ["/"] },
-  { href: "/", icon: "storefront", label: "Marketplace" },
   {
     href: "/claims",
     icon: "shopping_cart_checkout",

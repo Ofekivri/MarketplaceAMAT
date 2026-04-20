@@ -37,7 +37,7 @@ export default async function OfferDetailPage({
       </Link>
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">{offer.itemName}</h1>
             <p className="mt-1 text-sm text-gray-500">
@@ -46,8 +46,49 @@ export default async function OfferDetailPage({
               {formatRelative(offer.createdAt)}
             </p>
           </div>
-          <StatusBadge status={offer.status} />
+          <div className="flex items-center gap-3">
+            {isOwn && offer.status !== "SCRAPPED" && offer.status !== "COMPLETED" && (
+              <Link
+                href={`/offers/${offer.id}/edit`}
+                className="flex items-center gap-1.5 rounded bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
+              >
+                <span className="material-symbols-outlined text-sm">edit</span>
+                Edit
+              </Link>
+            )}
+            <StatusBadge status={offer.status} />
+          </div>
         </div>
+
+        {offer.images.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <div className="aspect-video overflow-hidden rounded-lg bg-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={offer.images[0]}
+                alt={offer.itemName}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            {offer.images.length > 1 && (
+              <div className="grid grid-cols-5 gap-2">
+                {offer.images.slice(1).map((src, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square overflow-hidden rounded bg-gray-100"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`${offer.itemName} ${i + 2}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <Detail term="Quantity" value={String(offer.quantity)} />
