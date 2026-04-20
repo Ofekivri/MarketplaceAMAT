@@ -10,13 +10,27 @@ function buildHref(
   q: string,
   view: "grid" | "list",
   category: string | null,
+  page: number = 1,
 ): string {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (view === "list") params.set("view", "list");
   if (category) params.set("category", category);
+  if (page > 1) params.set("page", String(page));
   const s = params.toString();
   return s ? `/?${s}` : "/";
+}
+
+function pageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set<number>([1, 2, total - 1, total, current - 1, current, current + 1]);
+  const nums = [...set].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  for (let i = 0; i < nums.length; i++) {
+    if (i > 0 && nums[i] - nums[i - 1] > 1) out.push("…");
+    out.push(nums[i]);
+  }
+  return out;
 }
 
 function conditionBadge(cond: string) {
@@ -35,14 +49,14 @@ function conditionBadge(cond: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; view?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; view?: string; category?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
-  const { q: rawQ, view: rawView, category: rawCat } = await searchParams;
+  const { q: rawQ, view: rawView, category: rawCat, page: rawPage } = await searchParams;
   const q = rawQ?.trim() ?? "";
   const view: "grid" | "list" = rawView === "list" ? "list" : "grid";
   const category = rawCat && isValidCategory(rawCat) ? rawCat : null;
-  const take = view === "list" ? 20 : 6;
+  const take = view === "list" ? 20 : 24;
 
   if (!user) {
     return (
@@ -75,6 +89,21 @@ export default async function DashboardPage({
     filters.push({ category });
   }
 
+  const matchingCount = await prisma.offer.count({
+    where: {
+      status: "AVAILABLE",
+      offeringUserId: { not: user.id },
+      AND: filters,
+    },
+  });
+  const totalPages = Math.max(1, Math.ceil(matchingCount / take));
+  const parsedPage = Number(rawPage);
+  const page =
+    Number.isFinite(parsedPage) && parsedPage >= 1
+      ? Math.min(Math.floor(parsedPage), totalPages)
+      : 1;
+  const skip = (page - 1) * take;
+
   const [
     liveOffers,
     allLiveOffers,
@@ -90,6 +119,7 @@ export default async function DashboardPage({
       },
       include: { offeringUser: true },
       orderBy: { scrapDate: "asc" },
+      skip,
       take,
     }),
     prisma.offer.findMany({
@@ -242,6 +272,24 @@ export default async function DashboardPage({
               : q
                 ? `Search results for "${q}"`
                 : "Available for immediate claim or salvage"}
+          </p>
+          <p className="mt-1 text-xs font-medium text-on-surface-variant">
+            {matchingCount === 0 ? (
+              <>Showing <span className="font-bold text-on-surface">0</span></>
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-bold text-on-surface">
+                  {skip + 1}–{skip + liveOffers.length}
+                </span>{" "}
+                of <span className="font-bold text-on-surface">{matchingCount}</span>
+                {totalPages > 1 && (
+                  <span className="text-outline">
+                    {" "}· page {page} of {totalPages}
+                  </span>
+                )}
+              </>
+            )}
           </p>
         </div>
         <div className="flex w-full items-center gap-2 md:max-w-xl">
@@ -536,6 +584,68 @@ export default async function DashboardPage({
             );
           })}
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav
+          aria-label="Pagination"
+          className="mt-6 flex flex-wrap items-center justify-center gap-1"
+        >
+          {page > 1 ? (
+            <Link
+              href={buildHref(q, view, category, page - 1)}
+              className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
+            >
+              <span className="material-symbols-outlined text-sm">chevron_left</span>
+              Prev
+            </Link>
+          ) : (
+            <span className="flex h-9 items-center gap-1 rounded-full bg-surface-container/50 px-3 text-xs font-bold text-outline">
+              <span className="material-symbols-outlined text-sm">chevron_left</span>
+              Prev
+            </span>
+          )}
+          {pageNumbers(page, totalPages).map((n, i) =>
+            n === "…" ? (
+              <span
+                key={`e${i}`}
+                className="flex h-9 w-9 items-center justify-center text-xs text-outline"
+              >
+                …
+              </span>
+            ) : n === page ? (
+              <span
+                key={n}
+                aria-current="page"
+                className="flex h-9 min-w-9 items-center justify-center rounded-full bg-primary px-3 text-xs font-bold text-white shadow-sm"
+              >
+                {n}
+              </span>
+            ) : (
+              <Link
+                key={n}
+                href={buildHref(q, view, category, n)}
+                className="flex h-9 min-w-9 items-center justify-center rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
+              >
+                {n}
+              </Link>
+            ),
+          )}
+          {page < totalPages ? (
+            <Link
+              href={buildHref(q, view, category, page + 1)}
+              className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
+            >
+              Next
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </Link>
+          ) : (
+            <span className="flex h-9 items-center gap-1 rounded-full bg-surface-container/50 px-3 text-xs font-bold text-outline">
+              Next
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </span>
+          )}
+        </nav>
       )}
     </div>
   );
