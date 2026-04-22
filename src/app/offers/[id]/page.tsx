@@ -54,6 +54,43 @@ export default async function OfferDetailPage({
         />
       )}
 
+      {offer.status === "COMPLETED" && (
+        <div className="relative overflow-hidden rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-600 text-white shadow-lg ring-8 ring-green-100">
+            <span className="material-symbols-outlined text-5xl">
+              verified
+            </span>
+          </div>
+          <h2 className="text-3xl font-black text-green-900">
+            Saved from scrap!
+          </h2>
+          <p className="mt-2 text-base text-green-800">
+            <span className="font-bold">{offer.itemName}</span> has been
+            redeployed — another win for the circular factory.
+          </p>
+          {offer.estimatedValue > 0 && (
+            <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-bold text-green-900 shadow-sm backdrop-blur">
+              <span className="material-symbols-outlined text-base">
+                savings
+              </span>
+              ₪{offer.estimatedValue.toLocaleString()} saved from the scrap
+              bin
+            </div>
+          )}
+          <div className="mt-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 rounded-full bg-green-700 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-green-800"
+            >
+              Browse more offers
+              <span className="material-symbols-outlined text-base">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -229,42 +266,6 @@ export default async function OfferDetailPage({
             </form>
           )}
 
-          {offer.status === "COMPLETED" && (
-            <div className="relative overflow-hidden rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 p-8 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-600 text-white shadow-lg ring-8 ring-green-100">
-                <span className="material-symbols-outlined text-5xl">
-                  verified
-                </span>
-              </div>
-              <h2 className="text-3xl font-black text-green-900">
-                Saved from scrap!
-              </h2>
-              <p className="mt-2 text-base text-green-800">
-                <span className="font-bold">{offer.itemName}</span> has been
-                redeployed — another win for the circular factory.
-              </p>
-              {offer.estimatedValue > 0 && (
-                <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-bold text-green-900 shadow-sm backdrop-blur">
-                  <span className="material-symbols-outlined text-base">
-                    savings
-                  </span>
-                  ₪{offer.estimatedValue.toLocaleString()} saved from the
-                  scrap bin
-                </div>
-              )}
-              <div className="mt-6">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-1 rounded-full bg-green-700 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-green-800"
-                >
-                  Browse more offers
-                  <span className="material-symbols-outlined text-base">
-                    arrow_forward
-                  </span>
-                </Link>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
