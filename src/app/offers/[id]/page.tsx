@@ -4,6 +4,7 @@ import {
   claimOfferAction,
   completeClaimAction,
 } from "@/lib/actions";
+import { getCategory } from "@/lib/categories";
 import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/format";
 import { PostedCelebration } from "@/components/PostedCelebration";
 import { ClaimSuccessToast } from "@/components/ClaimSuccessToast";
@@ -35,6 +36,7 @@ export default async function OfferDetailPage({
   const isOwn = offer.offeringUserId === user.id;
   const isClaimer = offer.claim?.claimingUserId === user.id;
   const days = daysUntil(offer.scrapDate);
+  const category = getCategory(offer.category);
 
   return (
     <div className="space-y-4">
@@ -59,10 +61,23 @@ export default async function OfferDetailPage({
           <div>
             <h1 className="text-2xl font-semibold">{offer.itemName}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              From <strong>{offer.offeringUser.department}</strong> ·{" "}
-              {offer.offeringUser.name} · posted{" "}
+              Posted by <strong>{offer.offeringUser.name}</strong> ·{" "}
+              {offer.offeringUser.department} ·{" "}
               {formatRelative(offer.createdAt)}
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                <span className="material-symbols-outlined text-sm">
+                  {category.icon}
+                </span>
+                {category.label}
+              </span>
+              {offer.subCategory && (
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                  {offer.subCategory}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {isOwn && offer.status !== "SCRAPPED" && offer.status !== "COMPLETED" && (
@@ -122,11 +137,6 @@ export default async function OfferDetailPage({
               value={`₪${offer.estimatedValue.toLocaleString()}`}
             />
           )}
-          <Detail
-            term="Posted by"
-            value={`${offer.offeringUser.name} (${offer.offeringUser.department})`}
-          />
-          <Detail term="Contact" value={offer.offeringUser.email} />
         </dl>
 
         {offer.description && (
@@ -134,6 +144,17 @@ export default async function OfferDetailPage({
             {offer.description}
           </div>
         )}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold">Posted by</h2>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <Detail
+            term="Name"
+            value={`${offer.offeringUser.name} (${offer.offeringUser.department})`}
+          />
+          <Detail term="Contact" value={offer.offeringUser.email} />
+        </dl>
       </div>
 
       {offer.status === "AVAILABLE" && !isOwn && (
