@@ -442,11 +442,20 @@ export default async function DashboardPage({
                     className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:items-center md:gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
-                        <span className="material-symbols-outlined text-base">
-                          {getCategory(o.category).icon}
-                        </span>
-                      </div>
+                      {o.images[0] ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={o.images[0]}
+                          alt=""
+                          className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
+                          <span className="material-symbols-outlined text-base">
+                            {getCategory(o.category).icon}
+                          </span>
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-on-surface">
                           {o.itemName}
@@ -514,11 +523,20 @@ export default async function DashboardPage({
                 className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
-                  <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
-                    <span className="material-symbols-outlined text-[96px]">
-                      {getCategory(o.category).icon}
-                    </span>
-                  </div>
+                  {o.images[0] ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={o.images[0]}
+                      alt={o.itemName}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
+                      <span className="material-symbols-outlined text-[96px]">
+                        {getCategory(o.category).icon}
+                      </span>
+                    </div>
+                  )}
                   <div
                     className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
                   >
