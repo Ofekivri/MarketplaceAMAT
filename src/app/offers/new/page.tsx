@@ -3,6 +3,7 @@ import { createOfferAction } from "@/lib/actions";
 import { CategoryFields } from "@/components/CategoryFields";
 import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
+import NewOfferImagePicker from "./NewOfferImagePicker";
 
 export const metadata = { title: "Post New Item | SecondLife" };
 
@@ -27,40 +28,8 @@ export default async function NewOfferPage() {
         {/* LEFT: Visuals & Description */}
         <div className="space-y-8 lg:col-span-7">
           <Card>
-            <CardHeader
-              icon="add_a_photo"
-              title="Asset Visuals"
-              right={
-                <span className="rounded bg-surface-container px-2 py-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                  Coming next
-                </span>
-              }
-            />
-            <div className="group relative flex cursor-not-allowed flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest p-12 opacity-70">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-fixed">
-                <span className="material-symbols-outlined text-3xl text-primary">
-                  upload_file
-                </span>
-              </div>
-              <p className="mb-1 font-semibold text-on-surface">
-                Photo upload arrives in the next iteration
-              </p>
-              <p className="text-sm text-on-surface-variant">
-                For now, describe the asset visually in the description below.
-              </p>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-4">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container"
-                >
-                  <span className="material-symbols-outlined text-outline">
-                    add
-                  </span>
-                </div>
-              ))}
-            </div>
+            <CardHeader icon="add_a_photo" title="Asset Visuals" />
+            <NewOfferImagePicker />
           </Card>
 
           <Card>

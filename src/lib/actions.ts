@@ -1,11 +1,36 @@
 "use server";
 
+import { put, del } from "@vercel/blob";
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify, notifyAllExcept } from "./notify";
 import { isValidCategory, isValidSubCategory } from "./categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+const MAX_IMAGES_PER_OFFER = 6;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+async function uploadOfferImage(file: File, offerId: string): Promise<string> {
+  if (file.size === 0) throw new Error("No image provided");
+  if (file.size > MAX_IMAGE_BYTES) throw new Error("Image must be under 4MB");
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed");
+  }
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const key = `offers/${offerId}/${crypto.randomUUID()}.${ext}`;
+  // Support both BLOB_READ_WRITE_TOKEN and BLOB1_READ_WRITE_TOKEN (Vercel
+  // appends a number when the default name was already taken during store setup).
+  const token =
+    process.env.BLOB_READ_WRITE_TOKEN ??
+    process.env.BLOB1_READ_WRITE_TOKEN;
+  const { url } = await put(key, file, {
+    access: "public",
+    contentType: file.type,
+    token,
+  });
+  return url;
+}
 
 export async function createOfferAction(formData: FormData) {
   const user = await requireUser();
@@ -30,6 +55,22 @@ export async function createOfferAction(formData: FormData) {
   const scrapDate = new Date();
   scrapDate.setDate(scrapDate.getDate() + daysUntilScrap);
 
+  const rawImages = formData.getAll("images");
+  const imageFiles = rawImages.filter(
+    (entry): entry is File => entry instanceof File && entry.size > 0,
+  );
+  if (imageFiles.length > MAX_IMAGES_PER_OFFER) {
+    throw new Error("Maximum 6 images per offer");
+  }
+  for (const file of imageFiles) {
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error("Image must be under 4MB");
+    }
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Only image files are allowed");
+    }
+  }
+
   const offer = await prisma.offer.create({
     data: {
       offeringUserId: user.id,
@@ -44,6 +85,16 @@ export async function createOfferAction(formData: FormData) {
       estimatedValue,
     },
   });
+
+  if (imageFiles.length > 0) {
+    const urls = await Promise.all(
+      imageFiles.map((file) => uploadOfferImage(file, offer.id)),
+    );
+    await prisma.offer.update({
+      where: { id: offer.id },
+      data: { images: { set: urls } },
+    });
+  }
 
   await notifyAllExcept(user.id, {
     title: `${user.department} is offering ${itemName}`,
@@ -280,31 +331,22 @@ export async function addOfferImageAction(formData: FormData) {
   const offerId = String(formData.get("offerId") ?? "");
   const file = formData.get("image");
   if (!offerId) throw new Error("Missing offer id");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("No image provided");
-  }
-  if (file.size > 4 * 1024 * 1024) {
-    throw new Error("Image must be under 4MB");
-  }
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Only image files are allowed");
-  }
+  if (!(file instanceof File)) throw new Error("No image provided");
 
   const offer = await prisma.offer.findUnique({ where: { id: offerId } });
   if (!offer) throw new Error("Offer not found");
   if (offer.offeringUserId !== user.id) {
     throw new Error("Only the owner can add images");
   }
-  if (offer.images.length >= 6) {
+  if (offer.images.length >= MAX_IMAGES_PER_OFFER) {
     throw new Error("Maximum 6 images per offer");
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+  const url = await uploadOfferImage(file, offerId);
 
   await prisma.offer.update({
     where: { id: offerId },
-    data: { images: { push: dataUrl } },
+    data: { images: { push: url } },
   });
 
   revalidatePath(`/offers/${offerId}`);
@@ -324,11 +366,20 @@ export async function removeOfferImageAction(formData: FormData) {
   }
   if (index >= offer.images.length) throw new Error("Invalid image index");
 
+  const removed = offer.images[index];
   const next = offer.images.filter((_, i) => i !== index);
   await prisma.offer.update({
     where: { id: offerId },
     data: { images: { set: next } },
   });
+
+  if (removed.startsWith("https://")) {
+    try {
+      await del(removed);
+    } catch {
+      // Legacy or already-deleted blob; don't block the UI.
+    }
+  }
 
   revalidatePath(`/offers/${offerId}`);
   revalidatePath(`/offers/${offerId}/edit`);
