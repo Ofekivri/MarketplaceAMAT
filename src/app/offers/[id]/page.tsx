@@ -122,6 +122,11 @@ export default async function OfferDetailPage({
               value={`₪${offer.estimatedValue.toLocaleString()}`}
             />
           )}
+          <Detail
+            term="Posted by"
+            value={`${offer.offeringUser.name} (${offer.offeringUser.department})`}
+          />
+          <Detail term="Contact" value={offer.offeringUser.email} />
         </dl>
 
         {offer.description && (
