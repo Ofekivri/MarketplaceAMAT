@@ -19,9 +19,15 @@ async function uploadOfferImage(file: File, offerId: string): Promise<string> {
   }
   const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
   const key = `offers/${offerId}/${crypto.randomUUID()}.${ext}`;
+  // Support both BLOB_READ_WRITE_TOKEN and BLOB1_READ_WRITE_TOKEN (Vercel
+  // appends a number when the default name was already taken during store setup).
+  const token =
+    process.env.BLOB_READ_WRITE_TOKEN ??
+    process.env.BLOB1_READ_WRITE_TOKEN;
   const { url } = await put(key, file, {
     access: "public",
     contentType: file.type,
+    token,
   });
   return url;
 }
