@@ -421,7 +421,7 @@ export default async function DashboardPage({
         </div>
       ) : view === "list" ? (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_auto] md:gap-4">
+          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:gap-4">
             <div>Item</div>
             <div>Department</div>
             <div>Location</div>
@@ -439,7 +439,7 @@ export default async function DashboardPage({
                 <li key={o.id}>
                   <Link
                     href={`/offers/${o.id}`}
-                    className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_auto] md:items-center md:gap-4"
+                    className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:items-center md:gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
