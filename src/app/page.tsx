@@ -421,13 +421,14 @@ export default async function DashboardPage({
         </div>
       ) : view === "list" ? (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr] md:gap-4">
+          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_auto] md:gap-4">
             <div>Item</div>
             <div>Department</div>
             <div>Location</div>
             <div>Deadline</div>
             <div className="text-right">Qty</div>
             <div className="text-right">Value</div>
+            <div className="sr-only">Action</div>
           </div>
           <ul className="divide-y divide-outline-variant/20">
             {liveOffers.map((o) => {
@@ -438,7 +439,7 @@ export default async function DashboardPage({
                 <li key={o.id}>
                   <Link
                     href={`/offers/${o.id}`}
-                    className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr] md:items-center md:gap-4"
+                    className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_auto] md:items-center md:gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
@@ -484,6 +485,14 @@ export default async function DashboardPage({
                       {o.estimatedValue > 0
                         ? `₪${o.estimatedValue.toLocaleString()}`
                         : "—"}
+                    </div>
+                    <div className="mt-2 md:mt-0 md:justify-self-end">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
+                        View
+                        <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-0.5">
+                          arrow_forward
+                        </span>
+                      </span>
                     </div>
                   </Link>
                 </li>
