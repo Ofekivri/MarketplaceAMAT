@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const bob = await prisma.user.findUnique({
-  where: { email: "bob@amat.example" },
+  where: { email: "ofek@amat.example" },
 });
 if (!bob) throw new Error("Run prisma/seed.ts first");
 

@@ -13,10 +13,10 @@ async function main() {
   await prisma.offer.deleteMany();
 
   const alice = await prisma.user.findUnique({
-    where: { email: "alice@amat.example" },
+    where: { email: "yaniv@amat.example" },
   });
   const bob = await prisma.user.findUnique({
-    where: { email: "bob@amat.example" },
+    where: { email: "ofek@amat.example" },
   });
   if (!alice || !bob) throw new Error("Seed users missing");
 

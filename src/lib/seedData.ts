@@ -27,40 +27,40 @@ export async function seedDemoData(
   const users = await Promise.all([
     prisma.user.create({
       data: {
-        email: "alice@amat.example",
-        name: "Alice Cohen",
+        email: "yaniv@amat.example",
+        name: "Yaniv Wollman",
         department: "Manufacturing B",
         role: "poster",
       },
     }),
     prisma.user.create({
       data: {
-        email: "bob@amat.example",
-        name: "Bob Levi",
+        email: "ofek@amat.example",
+        name: "Ofek Ivri",
         department: "Procurement",
         role: "claimer",
       },
     }),
     prisma.user.create({
       data: {
-        email: "carol@amat.example",
-        name: "Carol Mizrahi",
+        email: "eli@amat.example",
+        name: "Eli Shemesh",
         department: "Maintenance",
         role: "poster",
       },
     }),
     prisma.user.create({
       data: {
-        email: "dan@amat.example",
-        name: "Dan Peretz",
+        email: "adam@amat.example",
+        name: "Adam Medos",
         department: "Operations",
         role: "claimer",
       },
     }),
     prisma.user.create({
       data: {
-        email: "eve@amat.example",
-        name: "Eve Shapira",
+        email: "eigor@amat.example",
+        name: "Eigor Shishov",
         department: "R&D",
         role: "claimer",
       },
