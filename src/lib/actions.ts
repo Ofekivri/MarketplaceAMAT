@@ -1,6 +1,7 @@
 "use server";
 
 import { put, del } from "@vercel/blob";
+import sharp from "sharp";
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify } from "./notify";
@@ -17,16 +18,23 @@ async function uploadOfferImage(file: File, offerId: string): Promise<string> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Only image files are allowed");
   }
-  const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-  const key = `offers/${offerId}/${crypto.randomUUID()}.${ext}`;
+
+  const input = Buffer.from(await file.arrayBuffer());
+  const output = await sharp(input)
+    .rotate()
+    .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  const key = `offers/${offerId}/${crypto.randomUUID()}.webp`;
   // Support both BLOB_READ_WRITE_TOKEN and BLOB1_READ_WRITE_TOKEN (Vercel
   // appends a number when the default name was already taken during store setup).
   const token =
     process.env.BLOB_READ_WRITE_TOKEN ??
     process.env.BLOB1_READ_WRITE_TOKEN;
-  const { url } = await put(key, file, {
+  const { url } = await put(key, output, {
     access: "public",
-    contentType: file.type,
+    contentType: "image/webp",
     token,
   });
   return url;
