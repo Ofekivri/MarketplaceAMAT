@@ -9,6 +9,7 @@ import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/fo
 import { PostedCelebration } from "@/components/PostedCelebration";
 import { ClaimSuccessToast } from "@/components/ClaimSuccessToast";
 import { CompleteClaimButton } from "@/components/CompleteClaimButton";
+import { OfferImages } from "./OfferImages";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -39,7 +40,7 @@ export default async function OfferDetailPage({
   const category = getCategory(offer.category);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Link href="/" className="text-sm text-gray-500 hover:underline">
         ← Back to dashboard
       </Link>
@@ -93,7 +94,7 @@ export default async function OfferDetailPage({
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">{offer.itemName}</h1>
@@ -131,36 +132,12 @@ export default async function OfferDetailPage({
         </div>
 
         {offer.images.length > 0 && (
-          <div className="mt-5 space-y-3">
-            <div className="aspect-video overflow-hidden rounded-lg bg-gray-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={offer.images[0]}
-                alt={offer.itemName}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            {offer.images.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
-                {offer.images.slice(1).map((src, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square overflow-hidden rounded bg-gray-100"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src}
-                      alt={`${offer.itemName} ${i + 2}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="mt-4">
+            <OfferImages images={offer.images} alt={offer.itemName} />
           </div>
         )}
 
-        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
           <Detail term="Quantity" value={String(offer.quantity)} />
           <Detail term="Condition" value={formatCondition(offer.condition)} />
           <Detail term="Location" value={offer.location} />
@@ -183,7 +160,7 @@ export default async function OfferDetailPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold">Posted by</h2>
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <Detail
@@ -195,7 +172,7 @@ export default async function OfferDetailPage({
       </div>
 
       {offer.status === "AVAILABLE" && !isOwn && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold">Claim this item</h2>
           <p className="mt-1 text-sm text-gray-500">
             Both you and {offer.offeringUser.department} will be notified.
@@ -227,7 +204,7 @@ export default async function OfferDetailPage({
       {offer.claim && (
         <>
           {/* Status stepper */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <Step
                 done
@@ -261,7 +238,7 @@ export default async function OfferDetailPage({
           </div>
 
           {/* Claim details */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="text-lg font-semibold">Claim</h2>
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <Detail
