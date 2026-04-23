@@ -527,7 +527,7 @@ export async function completeClaimAction(formData: FormData) {
   await prisma.$transaction([
     prisma.claim.update({
       where: { id: offer.claim.id },
-      data: { status: "COMPLETED" },
+      data: { status: "COMPLETED", completedAt: new Date() },
     }),
     prisma.offer.update({
       where: { id: offerId },

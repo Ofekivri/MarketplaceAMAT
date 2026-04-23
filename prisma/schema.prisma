@@ -53,6 +53,7 @@ model Claim {
   status          String   @default("PENDING") // PENDING | PICKUP_SCHEDULED | COMPLETED | CANCELLED
   notes           String?
   createdAt       DateTime @default(now())
+  completedAt     DateTime?
   updatedAt       DateTime @updatedAt
 }
 
