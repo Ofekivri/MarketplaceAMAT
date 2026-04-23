@@ -553,6 +553,7 @@ export async function completeClaimAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/claims");
   revalidatePath(`/offers/${offerId}`);
+  redirect(`/offers/${offerId}?completed=1`);
 }
 
 export async function markNotificationReadAction(formData: FormData) {
