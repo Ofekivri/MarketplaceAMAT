@@ -16,11 +16,7 @@ export function CompleteClaimButton({ isClaimer }: { isClaimer: boolean }) {
       aria-busy={pending}
       onClick={(e) => {
         if (pending) return;
-        if (!window.confirm(confirmMsg)) {
-          e.preventDefault();
-          return;
-        }
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (!window.confirm(confirmMsg)) e.preventDefault();
       }}
       className="flex w-full items-center justify-center gap-3 rounded-xl bg-green-600 px-8 py-5 text-lg font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:bg-green-700 hover:shadow-green-500/40 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-green-600"
     >

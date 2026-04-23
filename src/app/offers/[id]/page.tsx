@@ -8,6 +8,7 @@ import { getCategory } from "@/lib/categories";
 import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/format";
 import { PostedCelebration } from "@/components/PostedCelebration";
 import { ClaimSuccessToast } from "@/components/ClaimSuccessToast";
+import { CompletedCelebration } from "@/components/CompletedCelebration";
 import { CompleteClaimButton } from "@/components/CompleteClaimButton";
 import { OfferImages } from "./OfferImages";
 import Link from "next/link";
@@ -18,10 +19,10 @@ export default async function OfferDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ posted?: string; claimed?: string }>;
+  searchParams: Promise<{ posted?: string; claimed?: string; completed?: string }>;
 }) {
   const { id } = await params;
-  const { posted, claimed } = await searchParams;
+  const { posted, claimed, completed } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -54,6 +55,13 @@ export default async function OfferDetailPage({
           itemName={offer.itemName}
           department={offer.offeringUser.department}
           location={offer.location}
+        />
+      )}
+
+      {completed === "1" && offer.status === "COMPLETED" && (
+        <CompletedCelebration
+          itemName={offer.itemName}
+          estimatedValue={offer.estimatedValue}
         />
       )}
 
