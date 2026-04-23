@@ -95,14 +95,49 @@ export default async function OfferDetailPage({
       )}
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+        <div className="md:grid md:grid-cols-[3fr_2fr] md:gap-6">
           <div>
-            <h1 className="text-2xl font-semibold">{offer.itemName}</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Posted by <strong>{offer.offeringUser.name}</strong> ·{" "}
-              {offer.offeringUser.department} ·{" "}
-              {formatRelative(offer.createdAt)}
-            </p>
+            {offer.images.length > 0 ? (
+              <OfferImages images={offer.images} alt={offer.itemName} />
+            ) : (
+              <div className="flex h-72 items-center justify-center rounded-lg bg-gray-100 text-gray-400 md:h-[460px] lg:h-[540px]">
+                <span className="material-symbols-outlined text-6xl">
+                  {category.icon}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-col md:mt-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold leading-tight">
+                  {offer.itemName}
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Posted by <strong>{offer.offeringUser.name}</strong> ·{" "}
+                  {offer.offeringUser.department} ·{" "}
+                  {formatRelative(offer.createdAt)}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {isOwn &&
+                  offer.status !== "SCRAPPED" &&
+                  offer.status !== "COMPLETED" && (
+                    <Link
+                      href={`/offers/${offer.id}/edit`}
+                      className="flex items-center gap-1.5 rounded bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        edit
+                      </span>
+                      Edit
+                    </Link>
+                  )}
+                <StatusBadge status={offer.status} />
+              </div>
+            </div>
+
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                 <span className="material-symbols-outlined text-sm">
@@ -116,90 +151,78 @@ export default async function OfferDetailPage({
                 </span>
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {isOwn && offer.status !== "SCRAPPED" && offer.status !== "COMPLETED" && (
-              <Link
-                href={`/offers/${offer.id}/edit`}
-                className="flex items-center gap-1.5 rounded bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
-              >
-                <span className="material-symbols-outlined text-sm">edit</span>
-                Edit
-              </Link>
+
+            {offer.estimatedValue > 0 && (
+              <p className="mt-3 text-3xl font-black text-gray-900">
+                ₪{offer.estimatedValue.toLocaleString()}
+              </p>
             )}
-            <StatusBadge status={offer.status} />
+
+            <dl className="mt-3 divide-y divide-gray-100 border-y border-gray-100">
+              <InfoRow
+                icon="inventory_2"
+                label="Quantity"
+                value={String(offer.quantity)}
+              />
+              <InfoRow
+                icon="verified"
+                label="Condition"
+                value={formatCondition(offer.condition)}
+              />
+              <InfoRow
+                icon="location_on"
+                label="Location"
+                value={offer.location}
+              />
+              <InfoRow
+                icon="schedule"
+                label="Scrap deadline"
+                value={`${formatDate(offer.scrapDate)} (${days > 0 ? `${days}d left` : "expired"})`}
+                urgent={days <= 1}
+              />
+              <InfoRow
+                icon="mail"
+                label="Contact"
+                value={offer.offeringUser.email}
+              />
+            </dl>
+
+            {offer.description && (
+              <div className="mt-3 rounded bg-gray-50 p-3 text-sm">
+                {offer.description}
+              </div>
+            )}
+
+            {offer.status === "AVAILABLE" && !isOwn && (
+              <form action={claimOfferAction} className="mt-4 space-y-2">
+                <input type="hidden" name="offerId" value={offer.id} />
+                <textarea
+                  name="notes"
+                  placeholder="Optional pickup notes..."
+                  rows={2}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="submit"
+                  className="w-full rounded bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                >
+                  ✅ Claim this
+                </button>
+                <p className="text-xs text-gray-500">
+                  Both you and {offer.offeringUser.department} will be
+                  notified.
+                </p>
+              </form>
+            )}
+
+            {offer.status === "AVAILABLE" && isOwn && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                This is your offer. Waiting for someone to claim it.
+              </div>
+            )}
           </div>
         </div>
-
-        {offer.images.length > 0 && (
-          <div className="mt-4">
-            <OfferImages images={offer.images} alt={offer.itemName} />
-          </div>
-        )}
-
-        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-          <Detail term="Quantity" value={String(offer.quantity)} />
-          <Detail term="Condition" value={formatCondition(offer.condition)} />
-          <Detail term="Location" value={offer.location} />
-          <Detail
-            term="Scrap deadline"
-            value={`${formatDate(offer.scrapDate)} (${days > 0 ? `${days}d left` : "expired"})`}
-          />
-          {offer.estimatedValue > 0 && (
-            <Detail
-              term="Est. value"
-              value={`₪${offer.estimatedValue.toLocaleString()}`}
-            />
-          )}
-        </dl>
-
-        {offer.description && (
-          <div className="mt-4 rounded bg-gray-50 p-3 text-sm">
-            {offer.description}
-          </div>
-        )}
       </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold">Posted by</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Detail
-            term="Name"
-            value={`${offer.offeringUser.name} (${offer.offeringUser.department})`}
-          />
-          <Detail term="Contact" value={offer.offeringUser.email} />
-        </dl>
-      </div>
-
-      {offer.status === "AVAILABLE" && !isOwn && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">Claim this item</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Both you and {offer.offeringUser.department} will be notified.
-          </p>
-          <form action={claimOfferAction} className="mt-3 space-y-3">
-            <input type="hidden" name="offerId" value={offer.id} />
-            <textarea
-              name="notes"
-              placeholder="Optional pickup notes..."
-              rows={2}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
-            >
-              ✅ Claim this
-            </button>
-          </form>
-        </div>
-      )}
-
-      {offer.status === "AVAILABLE" && isOwn && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          This is your offer. Waiting for someone to claim it.
-        </div>
-      )}
 
       {offer.claim && (
         <>
@@ -302,6 +325,36 @@ function Step({
       </div>
       <p className="text-sm font-bold">{label}</p>
       <p className="text-[10px] text-gray-500">{sub}</p>
+    </div>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  urgent,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  urgent?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2 text-sm">
+      <span className="material-symbols-outlined text-base text-gray-400">
+        {icon}
+      </span>
+      <dt className="w-28 shrink-0 text-xs uppercase tracking-wide text-gray-400">
+        {label}
+      </dt>
+      <dd
+        className={`min-w-0 flex-1 truncate font-medium ${
+          urgent ? "text-red-600" : "text-gray-900"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
