@@ -3,7 +3,7 @@
 import { put, del } from "@vercel/blob";
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
-import { notify, notifyAllExcept } from "./notify";
+import { notify } from "./notify";
 import { isValidCategory, isValidSubCategory } from "./categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -95,12 +95,6 @@ export async function createOfferAction(formData: FormData) {
       data: { images: { set: urls } },
     });
   }
-
-  await notifyAllExcept(user.id, {
-    title: `${user.department} is offering ${itemName}`,
-    body: `${quantity}x at ${location}. Available until ${scrapDate.toLocaleDateString("en-GB")}.`,
-    link: `/offers/${offer.id}`,
-  });
 
   const haystack = `${itemName} ${description} ${location}`.toLowerCase();
   const subs = await prisma.searchSubscription.findMany({
