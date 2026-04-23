@@ -106,8 +106,6 @@ export default async function DashboardPage({
 
   const [
     liveOffers,
-    allLiveOffers,
-    activeClaimCount,
     categoryCounts,
     pendingReceipts,
   ] = await Promise.all([
@@ -121,16 +119,6 @@ export default async function DashboardPage({
       orderBy: { scrapDate: "asc" },
       skip,
       take,
-    }),
-    prisma.offer.findMany({
-      where: { status: "AVAILABLE" },
-      select: { estimatedValue: true },
-    }),
-    prisma.claim.count({
-      where: {
-        claimingUserId: user.id,
-        status: { in: ["PENDING", "PICKUP_SCHEDULED"] },
-      },
     }),
     prisma.offer.groupBy({
       by: ["category"],
@@ -150,12 +138,6 @@ export default async function DashboardPage({
       take: 3,
     }),
   ]);
-
-  const portfolioValue = allLiveOffers.reduce(
-    (s, o) => s + o.estimatedValue,
-    0,
-  );
-  const liveOffersCount = allLiveOffers.length;
 
   const countByCategory = new Map(
     categoryCounts.map((c) => [c.category, c._count._all]),
@@ -204,63 +186,6 @@ export default async function DashboardPage({
           </ul>
         </section>
       )}
-
-      {/* Hero / bento grid */}
-      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-container p-5 text-white shadow-md md:col-span-2">
-          <div className="relative z-10">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-primary-fixed">
-              Portfolio Value
-            </p>
-            <h2 className="text-3xl font-black">
-              ₪{(portfolioValue / 1000).toFixed(1)}K
-            </h2>
-            <p className="mt-1 max-w-xs text-xs text-primary-fixed/80">
-              Total value of industrial assets in the live pipeline.
-            </p>
-          </div>
-          <div className="relative z-10 mt-3 flex items-center gap-3">
-            <Link
-              href="/analytics"
-              className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-primary shadow-sm"
-            >
-              View Analytics
-            </Link>
-            <span className="text-[10px] font-medium text-primary-fixed">
-              Live across {new Set(liveOffers.map((o) => o.offeringUser.department)).size}+
-              departments
-            </span>
-          </div>
-          <div className="absolute -bottom-4 -right-4 opacity-10">
-            <span className="material-symbols-outlined text-[120px]">
-              precision_manufacturing
-            </span>
-          </div>
-        </div>
-
-        <StatCard
-          icon="check_circle"
-          iconColor="text-tertiary"
-          label="Active Claims"
-          value={activeClaimCount.toString()}
-          sub={
-            activeClaimCount === 0
-              ? "None pending"
-              : `${activeClaimCount} awaiting pickup`
-          }
-        />
-        <StatCard
-          icon="local_shipping"
-          iconColor="text-primary-container"
-          label="Live Offers"
-          value={liveOffersCount.toString()}
-          sub={
-            liveOffers[0]
-              ? `Newest from ${liveOffers[0].offeringUser.department}`
-              : "None right now"
-          }
-        />
-      </section>
 
       {/* Search + header */}
       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -683,31 +608,3 @@ export default async function DashboardPage({
   );
 }
 
-function StatCard({
-  icon,
-  iconColor,
-  label,
-  value,
-  sub,
-}: {
-  icon: string;
-  iconColor: string;
-  label: string;
-  value: string;
-  sub: string;
-}) {
-  return (
-    <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-4 shadow-[0_10px_30px_-5px_rgba(25,27,35,0.06)]">
-      <div>
-        <span className={`material-symbols-outlined mb-1 text-lg ${iconColor}`}>
-          {icon}
-        </span>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-          {label}
-        </p>
-        <h3 className="mt-0.5 text-2xl font-bold text-on-surface">{value}</h3>
-      </div>
-      <p className="mt-1 text-[10px] text-on-surface-variant">{sub}</p>
-    </div>
-  );
-}
