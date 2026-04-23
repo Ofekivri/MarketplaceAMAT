@@ -14,16 +14,3 @@ export async function notify(input: NotifyInput) {
   );
   return notification;
 }
-
-export async function notifyAllExcept(
-  excludeUserId: string,
-  payload: Omit<NotifyInput, "userId">,
-) {
-  const others = await prisma.user.findMany({
-    where: { id: { not: excludeUserId } },
-    select: { id: true },
-  });
-  await Promise.all(
-    others.map((u) => notify({ userId: u.id, ...payload })),
-  );
-}
