@@ -421,7 +421,7 @@ export default async function DashboardPage({
         </div>
       ) : view === "list" ? (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
-          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:gap-4">
+          <div className="hidden border-b border-outline-variant/20 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant md:grid md:grid-cols-[2.5fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:gap-4">
             <div>Item</div>
             <div>Department</div>
             <div>Location</div>
@@ -439,25 +439,25 @@ export default async function DashboardPage({
                 <li key={o.id}>
                   <Link
                     href={`/offers/${o.id}`}
-                    className="group flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:items-center md:gap-4"
+                    className="group flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-surface-container md:grid md:grid-cols-[2.5fr_1fr_1.5fr_1fr_0.8fr_0.8fr_6rem] md:items-center md:gap-4"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-4 min-w-0">
                       {o.images[0] ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={o.images[0]}
                           alt=""
-                          className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                          className="h-16 w-16 shrink-0 rounded-xl object-cover"
                         />
                       ) : (
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-primary">
-                          <span className="material-symbols-outlined text-base">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary-fixed text-primary">
+                          <span className="material-symbols-outlined text-3xl">
                             {getCategory(o.category).icon}
                           </span>
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-on-surface">
+                        <p className="truncate text-base font-bold text-on-surface">
                           {o.itemName}
                         </p>
                         <div className="flex items-center gap-2">
@@ -522,7 +522,7 @@ export default async function DashboardPage({
                 aria-label={`View and claim ${o.itemName}`}
                 className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
-                <div className="relative h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
+                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
                   {o.images[0] ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -549,7 +549,7 @@ export default async function DashboardPage({
                     {getCategory(o.category).label}
                   </div>
                 </div>
-                <div className="p-5">
+                <div className="p-6">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="text-lg font-bold text-on-surface">
