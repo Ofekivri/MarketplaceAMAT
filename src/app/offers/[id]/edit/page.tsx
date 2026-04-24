@@ -363,7 +363,7 @@ function ImageGallery({
             Primary
           </div>
         </div>
-      ) : (
+      ) : disabled ? (
         <div className="flex aspect-video items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest">
           <div className="text-center">
             <span className="material-symbols-outlined text-4xl text-outline">
@@ -374,63 +374,77 @@ function ImageGallery({
             </p>
           </div>
         </div>
+      ) : (
+        <ImageUploader offerId={offerId} variant="big" />
       )}
 
-      <div className="grid grid-cols-4 gap-3">
-        {rest.map((img, i) => {
-          const index = i + 1;
-          return (
-            <div
-              key={index}
-              className="group relative aspect-square overflow-hidden rounded-lg bg-surface-container"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img}
-                alt={`Image ${index + 1}`}
-                className="h-full w-full object-cover"
-              />
-              {!disabled && (
-                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                  <form action={setPrimaryOfferImageAction}>
-                    <input type="hidden" name="offerId" value={offerId} />
-                    <input type="hidden" name="index" value={index} />
-                    <button
-                      type="submit"
-                      aria-label="Set as primary"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary hover:bg-white/90"
+      {(rest.length > 0 || (!disabled && canAddMore && primary)) && (
+        <div className="grid grid-cols-3 gap-3">
+          {rest.map((img, i) => {
+            const index = i + 1;
+            return (
+              <div
+                key={index}
+                className="relative aspect-square overflow-hidden rounded-lg bg-surface-container"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img}
+                  alt={`Image ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+                {!disabled && (
+                  <>
+                    <form
+                      action={setPrimaryOfferImageAction}
+                      className="absolute left-2 top-2"
                     >
-                      <span className="material-symbols-outlined text-base">
-                        star
-                      </span>
-                    </button>
-                  </form>
-                  <form action={removeOfferImageAction}>
-                    <input type="hidden" name="offerId" value={offerId} />
-                    <input type="hidden" name="index" value={index} />
-                    <button
-                      type="submit"
-                      aria-label="Remove image"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-error hover:bg-white/90"
+                      <input type="hidden" name="offerId" value={offerId} />
+                      <input type="hidden" name="index" value={index} />
+                      <button
+                        type="submit"
+                        aria-label="Set as primary"
+                        title="Set as primary"
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-primary shadow-md hover:bg-white"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          star
+                        </span>
+                      </button>
+                    </form>
+                    <form
+                      action={removeOfferImageAction}
+                      className="absolute right-2 top-2"
                     >
-                      <span className="material-symbols-outlined text-base">
-                        close
-                      </span>
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                      <input type="hidden" name="offerId" value={offerId} />
+                      <input type="hidden" name="index" value={index} />
+                      <button
+                        type="submit"
+                        aria-label="Remove image"
+                        title="Remove"
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-error shadow-md hover:bg-white"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          close
+                        </span>
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            );
+          })}
 
-        {!disabled && canAddMore && <ImageUploader offerId={offerId} />}
-      </div>
+          {!disabled && canAddMore && primary && (
+            <ImageUploader offerId={offerId} variant="tile" />
+          )}
+        </div>
+      )}
 
       {!disabled && (
         <p className="text-xs text-on-surface-variant">
-          Up to 6 images, max 4MB each. Hover a thumbnail to set it as primary
-          or remove it.
+          Up to 6 images, max 4MB each. Click the star to set a photo as
+          primary, or the × to remove it.
         </p>
       )}
     </div>
