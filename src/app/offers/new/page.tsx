@@ -4,6 +4,7 @@ import { CategoryFields } from "@/components/CategoryFields";
 import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import NewOfferImagePicker from "./NewOfferImagePicker";
+import { DeadlinePicker } from "./DeadlinePicker";
 
 export const metadata = { title: "Post New Item | SecondLife" };
 
@@ -90,26 +91,8 @@ export default async function NewOfferPage() {
                 </Field>
               </div>
 
-              <Field label="Scrap Deadline" htmlFor="daysUntilScrap">
-                <div className="relative">
-                  <select
-                    id="daysUntilScrap"
-                    name="daysUntilScrap"
-                    defaultValue={5}
-                    className="input appearance-none pr-10"
-                  >
-                    <option value={2}>Immediate (within 48 hours)</option>
-                    <option value={5}>End of week (5 days)</option>
-                    <option value={14}>End of month (~2 weeks)</option>
-                    <option value={30}>Flexible (1 month)</option>
-                  </select>
-                  <span className="material-symbols-outlined pointer-events-none absolute right-3 top-3.5 text-on-surface-variant">
-                    calendar_month
-                  </span>
-                </div>
-                <p className="mt-2 text-xs italic text-on-surface-variant">
-                  Asset will be archived if not claimed by this date.
-                </p>
+              <Field label="Scrap Deadline">
+                <DeadlinePicker />
               </Field>
 
               <Field
