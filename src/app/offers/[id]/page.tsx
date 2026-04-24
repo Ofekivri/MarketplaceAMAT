@@ -11,6 +11,7 @@ import { ClaimSuccessToast } from "@/components/ClaimSuccessToast";
 import { CompletedCelebration } from "@/components/CompletedCelebration";
 import { CompleteClaimButton } from "@/components/CompleteClaimButton";
 import { OfferImages } from "./OfferImages";
+import { ActivityTimeline } from "./ActivityTimeline";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -234,60 +235,27 @@ export default async function OfferDetailPage({
 
       {offer.claim && (
         <>
-          {/* Status stepper */}
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <Step
-                done
-                icon="check_circle"
-                label="Claimed"
-                sub={`by ${offer.claim.claimingUser.name}`}
-              />
-              <div
-                className={`h-0.5 flex-1 ${
-                  offer.status === "COMPLETED" ? "bg-green-500" : "bg-amber-300"
-                }`}
-              />
-              <Step
-                done={offer.status === "COMPLETED"}
-                active={offer.status !== "COMPLETED"}
-                icon={
-                  offer.status === "COMPLETED" ? "check_circle" : "pending"
-                }
-                label={
-                  offer.status === "COMPLETED" ? "Received" : "Awaiting Receipt"
-                }
-                sub={
-                  offer.status === "COMPLETED"
-                    ? "Saved from scrap"
-                    : isClaimer
-                      ? "Tap when you pick it up"
-                      : "Waiting on claimer"
-                }
-              />
-            </div>
-          </div>
+          <ActivityTimeline
+            postedAt={offer.createdAt}
+            postedBy={{
+              name: offer.offeringUser.name,
+              department: offer.offeringUser.department,
+            }}
+            claim={{
+              createdAt: offer.claim.createdAt,
+              completedAt: offer.claim.completedAt,
+              updatedAt: offer.claim.updatedAt,
+              status: offer.claim.status,
+              notes: offer.claim.notes,
+              claimingUser: {
+                name: offer.claim.claimingUser.name,
+                department: offer.claim.claimingUser.department,
+              },
+            }}
+            offerStatus={offer.status}
+            estimatedValue={offer.estimatedValue}
+          />
 
-          {/* Claim details */}
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-semibold">Claim</h2>
-            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <Detail
-                term="Claimed by"
-                value={`${offer.claim.claimingUser.name} (${offer.claim.claimingUser.department})`}
-              />
-              <Detail term="Contact" value={offer.claim.claimingUser.email} />
-              <Detail
-                term="Claimed at"
-                value={formatRelative(offer.claim.createdAt)}
-              />
-              {offer.claim.notes && (
-                <Detail term="Notes" value={offer.claim.notes} />
-              )}
-            </dl>
-          </div>
-
-          {/* Big CTA */}
           {offer.status === "CLAIMED" && (isOwn || isClaimer) && (
             <form action={completeClaimAction}>
               <input type="hidden" name="offerId" value={offer.id} />
@@ -299,40 +267,8 @@ export default async function OfferDetailPage({
               </p>
             </form>
           )}
-
         </>
       )}
-    </div>
-  );
-}
-
-function Step({
-  done,
-  active,
-  icon,
-  label,
-  sub,
-}: {
-  done?: boolean;
-  active?: boolean;
-  icon: string;
-  label: string;
-  sub: string;
-}) {
-  const circleColor = done
-    ? "bg-green-500 text-white"
-    : active
-      ? "bg-amber-400 text-white animate-pulse"
-      : "bg-gray-200 text-gray-400";
-  return (
-    <div className="flex min-w-0 flex-col items-center text-center">
-      <div
-        className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full ${circleColor}`}
-      >
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      <p className="text-sm font-bold">{label}</p>
-      <p className="text-[10px] text-gray-500">{sub}</p>
     </div>
   );
 }
@@ -363,15 +299,6 @@ function InfoRow({
       >
         {value}
       </dd>
-    </div>
-  );
-}
-
-function Detail({ term, value }: { term: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-gray-400">{term}</dt>
-      <dd className="font-medium">{value}</dd>
     </div>
   );
 }
