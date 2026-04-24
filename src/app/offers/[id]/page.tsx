@@ -13,6 +13,7 @@ import { CompleteClaimButton } from "@/components/CompleteClaimButton";
 import { OfferImages } from "./OfferImages";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { DeadlineControls } from "./DeadlineControls";
+import { OverdueBanner } from "./OverdueBanner";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -57,6 +58,14 @@ export default async function OfferDetailPage({
           itemName={offer.itemName}
           department={offer.offeringUser.department}
           location={offer.location}
+        />
+      )}
+
+      {isOwn && offer.status === "AVAILABLE" && days <= 0 && (
+        <OverdueBanner
+          offerId={offer.id}
+          scrapDate={offer.scrapDate}
+          editHref={`/offers/${offer.id}/edit`}
         />
       )}
 

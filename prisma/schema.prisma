@@ -39,6 +39,7 @@ model Offer {
   subscriptionMatches SearchSubscriptionMatch[]
   createdAt       DateTime @default(now())
   scrappedAt      DateTime?
+  overdueNotifiedAt DateTime?
   updatedAt       DateTime @updatedAt
 
   @@index([category])
