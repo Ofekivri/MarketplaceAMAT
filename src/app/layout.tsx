@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { MobileNav } from "@/components/MobileNav";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "SecondLife | Dashboard",
@@ -58,6 +59,7 @@ export default async function RootLayout({
           </div>
         </main>
         <MobileNav />
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

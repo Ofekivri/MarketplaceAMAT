@@ -4,15 +4,17 @@ import {
   updateOfferAction,
   deleteOfferAction,
   markOfferScrappedAction,
-  removeOfferImageAction,
-  setPrimaryOfferImageAction,
   completeClaimAction,
 } from "@/lib/actions";
 import { formatRelative } from "@/lib/format";
 import { CategoryFields } from "@/components/CategoryFields";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import ImageUploader from "./ImageUploader";
+import {
+  ImageUploader,
+  RemoveImageButton,
+  SetPrimaryImageButton,
+} from "./ImageControls";
 
 export const metadata = { title: "Edit Offer | SecondLife" };
 
@@ -71,21 +73,23 @@ export default async function EditOfferPage({
         </div>
       )}
 
+      {/* Must live outside the update <form>: its add/remove/primary buttons
+          each render their own <form>, and HTML does not allow nested forms. */}
+      <Card>
+        <CardHeader icon="photo_library" title="Asset Visuals" />
+        <ImageGallery
+          offerId={offer.id}
+          images={offer.images}
+          disabled={readOnly}
+        />
+      </Card>
+
       <form action={updateOfferAction} id="edit-offer-form">
         <input type="hidden" name="offerId" value={offer.id} />
 
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-          {/* LEFT: Visuals & Description */}
+          {/* LEFT: Description */}
           <div className="space-y-8 lg:col-span-7">
-            <Card>
-              <CardHeader icon="photo_library" title="Asset Visuals" />
-              <ImageGallery
-                offerId={offer.id}
-                images={offer.images}
-                disabled={readOnly}
-              />
-            </Card>
-
             <Card>
               <CardHeader icon="description" title="Details & Specifications" />
               <div className="space-y-6">
@@ -340,28 +344,20 @@ function ImageGallery({
             className="h-full w-full object-cover"
           />
           {!disabled && (
-            <form
-              action={removeOfferImageAction}
-              className="absolute right-3 top-3"
+            <RemoveImageButton
+              offerId={offerId}
+              index={0}
+              ariaLabel="Remove primary image"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-60"
             >
-              <input type="hidden" name="offerId" value={offerId} />
-              <input type="hidden" name="index" value={0} />
-              <button
-                type="submit"
-                aria-label="Remove primary image"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-              >
-                <span className="material-symbols-outlined text-lg">
-                  close
-                </span>
-              </button>
-            </form>
+              <span className="material-symbols-outlined text-lg">close</span>
+            </RemoveImageButton>
           )}
           <div className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs font-bold uppercase tracking-widest text-white">
             Primary
           </div>
         </div>
-      ) : (
+      ) : disabled ? (
         <div className="flex aspect-video items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest">
           <div className="text-center">
             <span className="material-symbols-outlined text-4xl text-outline">
@@ -372,63 +368,63 @@ function ImageGallery({
             </p>
           </div>
         </div>
+      ) : (
+        <ImageUploader offerId={offerId} variant="big" />
       )}
 
-      <div className="grid grid-cols-4 gap-3">
-        {rest.map((img, i) => {
-          const index = i + 1;
-          return (
-            <div
-              key={index}
-              className="group relative aspect-square overflow-hidden rounded-lg bg-surface-container"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img}
-                alt={`Image ${index + 1}`}
-                className="h-full w-full object-cover"
-              />
-              {!disabled && (
-                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                  <form action={setPrimaryOfferImageAction}>
-                    <input type="hidden" name="offerId" value={offerId} />
-                    <input type="hidden" name="index" value={index} />
-                    <button
-                      type="submit"
-                      aria-label="Set as primary"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary hover:bg-white/90"
+      {(rest.length > 0 || (!disabled && canAddMore && primary)) && (
+        <div className="grid grid-cols-3 gap-3">
+          {rest.map((img, i) => {
+            const index = i + 1;
+            return (
+              <div
+                key={index}
+                className="relative aspect-square overflow-hidden rounded-lg bg-surface-container"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img}
+                  alt={`Image ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+                {!disabled && (
+                  <>
+                    <SetPrimaryImageButton
+                      offerId={offerId}
+                      index={index}
+                      ariaLabel="Set as primary"
+                      className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-primary shadow-md hover:bg-white disabled:opacity-60"
                     >
                       <span className="material-symbols-outlined text-base">
                         star
                       </span>
-                    </button>
-                  </form>
-                  <form action={removeOfferImageAction}>
-                    <input type="hidden" name="offerId" value={offerId} />
-                    <input type="hidden" name="index" value={index} />
-                    <button
-                      type="submit"
-                      aria-label="Remove image"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-error hover:bg-white/90"
+                    </SetPrimaryImageButton>
+                    <RemoveImageButton
+                      offerId={offerId}
+                      index={index}
+                      ariaLabel="Remove image"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-error shadow-md hover:bg-white disabled:opacity-60"
                     >
                       <span className="material-symbols-outlined text-base">
                         close
                       </span>
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    </RemoveImageButton>
+                  </>
+                )}
+              </div>
+            );
+          })}
 
-        {!disabled && canAddMore && <ImageUploader offerId={offerId} />}
-      </div>
+          {!disabled && canAddMore && primary && (
+            <ImageUploader offerId={offerId} variant="tile" />
+          )}
+        </div>
+      )}
 
       {!disabled && (
         <p className="text-xs text-on-surface-variant">
-          Up to 6 images, max 4MB each. Hover a thumbnail to set it as primary
-          or remove it.
+          Up to 6 images, max 4MB each. Click the star to set a photo as
+          primary, or the × to remove it.
         </p>
       )}
     </div>
