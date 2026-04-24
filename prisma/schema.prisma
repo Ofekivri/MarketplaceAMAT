@@ -38,6 +38,7 @@ model Offer {
   claim           Claim?
   subscriptionMatches SearchSubscriptionMatch[]
   createdAt       DateTime @default(now())
+  scrappedAt      DateTime?
   updatedAt       DateTime @updatedAt
 
   @@index([category])

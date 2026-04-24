@@ -12,6 +12,7 @@ import { CompletedCelebration } from "@/components/CompletedCelebration";
 import { CompleteClaimButton } from "@/components/CompleteClaimButton";
 import { OfferImages } from "./OfferImages";
 import { ActivityTimeline } from "./ActivityTimeline";
+import { DeadlineControls } from "./DeadlineControls";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -188,6 +189,13 @@ export default async function OfferDetailPage({
                 label="Scrap deadline"
                 value={`${formatDate(offer.scrapDate)} (${days > 0 ? `${days}d left` : "expired"})`}
                 urgent={days <= 1}
+                extra={
+                  isOwn &&
+                  offer.status !== "SCRAPPED" &&
+                  offer.status !== "COMPLETED" ? (
+                    <DeadlineControls offerId={offer.id} />
+                  ) : null
+                }
               />
               <InfoRow
                 icon="mail"
@@ -233,41 +241,45 @@ export default async function OfferDetailPage({
         </div>
       </div>
 
-      {offer.claim && (
-        <>
-          <ActivityTimeline
-            postedAt={offer.createdAt}
-            postedBy={{
-              name: offer.offeringUser.name,
-              department: offer.offeringUser.department,
-            }}
-            claim={{
-              createdAt: offer.claim.createdAt,
-              completedAt: offer.claim.completedAt,
-              updatedAt: offer.claim.updatedAt,
-              status: offer.claim.status,
-              notes: offer.claim.notes,
-              claimingUser: {
-                name: offer.claim.claimingUser.name,
-                department: offer.claim.claimingUser.department,
-              },
-            }}
-            offerStatus={offer.status}
-            estimatedValue={offer.estimatedValue}
-          />
+      {(offer.claim || offer.status === "SCRAPPED") && (
+        <ActivityTimeline
+          postedAt={offer.createdAt}
+          postedBy={{
+            name: offer.offeringUser.name,
+            department: offer.offeringUser.department,
+          }}
+          claim={
+            offer.claim
+              ? {
+                  createdAt: offer.claim.createdAt,
+                  completedAt: offer.claim.completedAt,
+                  updatedAt: offer.claim.updatedAt,
+                  status: offer.claim.status,
+                  notes: offer.claim.notes,
+                  claimingUser: {
+                    name: offer.claim.claimingUser.name,
+                    department: offer.claim.claimingUser.department,
+                  },
+                }
+              : null
+          }
+          offerStatus={offer.status}
+          scrappedAt={offer.scrappedAt}
+          offerUpdatedAt={offer.updatedAt}
+          estimatedValue={offer.estimatedValue}
+        />
+      )}
 
-          {offer.status === "CLAIMED" && (isOwn || isClaimer) && (
-            <form action={completeClaimAction}>
-              <input type="hidden" name="offerId" value={offer.id} />
-              <CompleteClaimButton isClaimer={isClaimer} />
-              <p className="mt-2 text-center text-xs text-gray-500">
-                {isClaimer
-                  ? "Marks the item as successfully picked up and redeployed."
-                  : "Confirm the claimer has picked up this item."}
-              </p>
-            </form>
-          )}
-        </>
+      {offer.claim && offer.status === "CLAIMED" && (isOwn || isClaimer) && (
+        <form action={completeClaimAction}>
+          <input type="hidden" name="offerId" value={offer.id} />
+          <CompleteClaimButton isClaimer={isClaimer} />
+          <p className="mt-2 text-center text-xs text-gray-500">
+            {isClaimer
+              ? "Marks the item as successfully picked up and redeployed."
+              : "Confirm the claimer has picked up this item."}
+          </p>
+        </form>
       )}
     </div>
   );
@@ -278,26 +290,31 @@ function InfoRow({
   label,
   value,
   urgent,
+  extra,
 }: {
   icon: string;
   label: string;
   value: string;
   urgent?: boolean;
+  extra?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2 text-sm">
-      <span className="material-symbols-outlined text-base text-gray-400">
+    <div className="flex items-start gap-3 py-2 text-sm">
+      <span className="material-symbols-outlined pt-0.5 text-base text-gray-400">
         {icon}
       </span>
-      <dt className="w-28 shrink-0 text-xs uppercase tracking-wide text-gray-400">
+      <dt className="w-28 shrink-0 pt-0.5 text-xs uppercase tracking-wide text-gray-400">
         {label}
       </dt>
-      <dd
-        className={`min-w-0 flex-1 truncate font-medium ${
-          urgent ? "text-red-600" : "text-gray-900"
-        }`}
-      >
-        {value}
+      <dd className="min-w-0 flex-1">
+        <span
+          className={`block truncate font-medium ${
+            urgent ? "text-red-600" : "text-gray-900"
+          }`}
+        >
+          {value}
+        </span>
+        {extra}
       </dd>
     </div>
   );

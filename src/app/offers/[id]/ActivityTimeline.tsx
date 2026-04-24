@@ -14,6 +14,8 @@ type Props = {
     claimingUser: Person;
   } | null;
   offerStatus: string;
+  scrappedAt: Date | null;
+  offerUpdatedAt: Date;
   estimatedValue: number;
 };
 
@@ -22,13 +24,22 @@ export function ActivityTimeline({
   postedBy,
   claim,
   offerStatus,
+  scrappedAt,
+  offerUpdatedAt,
   estimatedValue,
 }: Props) {
   const isCompleted = offerStatus === "COMPLETED";
-  // Legacy completed claims (pre-completedAt column) fall back to updatedAt.
+  const isScrapped = offerStatus === "SCRAPPED";
+  // Legacy fallbacks (pre-migration rows): use updatedAt if the dedicated
+  // timestamp column is null.
   const receivedAt = isCompleted && claim
     ? (claim.completedAt ?? claim.updatedAt)
     : null;
+  const scrapEventAt = isScrapped ? (scrappedAt ?? offerUpdatedAt) : null;
+
+  const showClaimed = !!claim;
+  const showAwaitingReceipt = showClaimed && !isCompleted && !isScrapped;
+  const postedIsLast = !showClaimed && !isScrapped;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
@@ -39,8 +50,8 @@ export function ActivityTimeline({
           title="Posted"
           person={postedBy}
           when={postedAt}
-          done
-          isLast={!claim}
+          tone="done"
+          isLast={postedIsLast}
         />
 
         {claim && (
@@ -51,8 +62,8 @@ export function ActivityTimeline({
             when={claim.createdAt}
             since={postedAt}
             notes={claim.notes}
-            done
-            isLast={!isCompleted}
+            tone="done"
+            isLast={!isCompleted && !isScrapped && !showAwaitingReceipt}
           />
         )}
 
@@ -72,17 +83,29 @@ export function ActivityTimeline({
                 </span>
               ) : null
             }
-            done
+            tone="done"
             isLast
           />
         )}
 
-        {claim && !isCompleted && (
+        {isScrapped && scrapEventAt && (
+          <Event
+            icon="delete"
+            title="Scrapped"
+            person={postedBy}
+            when={scrapEventAt}
+            since={claim?.createdAt ?? postedAt}
+            tone="scrapped"
+            isLast
+          />
+        )}
+
+        {showAwaitingReceipt && claim && (
           <Event
             icon="schedule"
             title="Awaiting receipt"
             since={claim.createdAt}
-            done={false}
+            tone="pending"
             isLast
           />
         )}
@@ -90,6 +113,8 @@ export function ActivityTimeline({
     </div>
   );
 }
+
+type Tone = "done" | "pending" | "scrapped";
 
 function Event({
   icon,
@@ -99,7 +124,7 @@ function Event({
   since,
   notes,
   footer,
-  done,
+  tone,
   isLast,
 }: {
   icon: string;
@@ -109,23 +134,32 @@ function Event({
   since?: Date;
   notes?: string | null;
   footer?: React.ReactNode;
-  done: boolean;
+  tone: Tone;
   isLast: boolean;
 }) {
+  const line =
+    tone === "scrapped"
+      ? "bg-gray-400"
+      : tone === "done"
+        ? "bg-green-300"
+        : "bg-gray-200";
+  const circle =
+    tone === "scrapped"
+      ? "bg-gray-500 text-white"
+      : tone === "done"
+        ? "bg-green-500 text-white"
+        : "border-2 border-dashed border-gray-300 bg-white text-gray-400";
+
   return (
     <li className="relative flex gap-4 pb-5 last:pb-0">
       {!isLast && (
         <span
           aria-hidden
-          className={`absolute left-[15px] top-8 h-[calc(100%-1rem)] w-px ${
-            done ? "bg-green-300" : "bg-gray-200"
-          }`}
+          className={`absolute left-[15px] top-8 h-[calc(100%-1rem)] w-px ${line}`}
         />
       )}
       <div
-        className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-          done ? "bg-green-500 text-white" : "border-2 border-dashed border-gray-300 bg-white text-gray-400"
-        }`}
+        className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${circle}`}
       >
         <span className="material-symbols-outlined text-base">{icon}</span>
       </div>

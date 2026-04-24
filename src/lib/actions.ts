@@ -53,15 +53,25 @@ export async function createOfferAction(formData: FormData) {
   const quantity = Number(formData.get("quantity") ?? 1);
   const condition = String(formData.get("condition") ?? "GOOD");
   const location = String(formData.get("location") ?? "").trim();
-  const daysUntilScrap = Number(formData.get("daysUntilScrap") ?? 5);
   const estimatedValue = Number(formData.get("estimatedValue") ?? 0);
 
   if (!itemName || !location) {
     throw new Error("Item name and location are required");
   }
 
-  const scrapDate = new Date();
-  scrapDate.setDate(scrapDate.getDate() + daysUntilScrap);
+  // Deadline: prefer explicit date if provided, else fall back to days slider.
+  const scrapDateRaw = String(formData.get("scrapDate") ?? "").trim();
+  let scrapDate: Date;
+  if (scrapDateRaw) {
+    scrapDate = new Date(scrapDateRaw);
+    if (Number.isNaN(scrapDate.getTime())) {
+      throw new Error("Invalid scrap deadline");
+    }
+  } else {
+    const daysUntilScrap = Number(formData.get("daysUntilScrap") ?? 5);
+    scrapDate = new Date();
+    scrapDate.setDate(scrapDate.getDate() + daysUntilScrap);
+  }
 
   const rawImages = formData.getAll("images");
   const imageFiles = rawImages.filter(
@@ -265,7 +275,7 @@ export async function markOfferScrappedAction(formData: FormData) {
   const ops = [
     prisma.offer.update({
       where: { id: offerId },
-      data: { status: "SCRAPPED" },
+      data: { status: "SCRAPPED", scrappedAt: new Date() },
     }),
   ];
   if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
@@ -286,6 +296,56 @@ export async function markOfferScrappedAction(formData: FormData) {
       link: `/offers/${offerId}`,
     });
   }
+
+  revalidatePath("/");
+  revalidatePath(`/offers/${offerId}`);
+  redirect(`/offers/${offerId}`);
+}
+
+export async function extendOfferDeadlineAction(formData: FormData) {
+  const user = await requireUser();
+  const offerId = String(formData.get("offerId") ?? "");
+  if (!offerId) throw new Error("Missing offer id");
+
+  const offer = await prisma.offer.findUnique({ where: { id: offerId } });
+  if (!offer) throw new Error("Offer not found");
+  if (offer.offeringUserId !== user.id) {
+    throw new Error("Only the owner can reschedule this offer");
+  }
+  if (offer.status === "SCRAPPED" || offer.status === "COMPLETED") {
+    throw new Error(`Cannot reschedule a ${offer.status.toLowerCase()} offer`);
+  }
+
+  const daysRaw = formData.get("days");
+  const dateRaw = formData.get("date");
+  let nextScrapDate: Date;
+  if (daysRaw !== null && daysRaw !== "") {
+    const days = Number(daysRaw);
+    if (!Number.isFinite(days) || days < 1 || days > 365) {
+      throw new Error("Invalid number of days");
+    }
+    // Extend from the later of today or current deadline so +3 on an
+    // already-overdue offer pushes the deadline 3 days from now, not
+    // 3 days from an old date.
+    const base = new Date(Math.max(Date.now(), offer.scrapDate.getTime()));
+    nextScrapDate = new Date(base);
+    nextScrapDate.setDate(nextScrapDate.getDate() + days);
+  } else if (dateRaw) {
+    nextScrapDate = new Date(String(dateRaw));
+    if (Number.isNaN(nextScrapDate.getTime())) {
+      throw new Error("Invalid scrap date");
+    }
+    if (nextScrapDate.getTime() < Date.now()) {
+      throw new Error("Scrap date must be in the future");
+    }
+  } else {
+    throw new Error("Provide days or a date");
+  }
+
+  await prisma.offer.update({
+    where: { id: offerId },
+    data: { scrapDate: nextScrapDate },
+  });
 
   revalidatePath("/");
   revalidatePath(`/offers/${offerId}`);
