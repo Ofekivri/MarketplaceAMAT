@@ -4,15 +4,17 @@ import {
   updateOfferAction,
   deleteOfferAction,
   markOfferScrappedAction,
-  removeOfferImageAction,
-  setPrimaryOfferImageAction,
   completeClaimAction,
 } from "@/lib/actions";
 import { formatRelative } from "@/lib/format";
 import { CategoryFields } from "@/components/CategoryFields";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import ImageUploader from "./ImageUploader";
+import {
+  ImageUploader,
+  RemoveImageButton,
+  SetPrimaryImageButton,
+} from "./ImageControls";
 
 export const metadata = { title: "Edit Offer | SecondLife" };
 
@@ -342,22 +344,14 @@ function ImageGallery({
             className="h-full w-full object-cover"
           />
           {!disabled && (
-            <form
-              action={removeOfferImageAction}
-              className="absolute right-3 top-3"
+            <RemoveImageButton
+              offerId={offerId}
+              index={0}
+              ariaLabel="Remove primary image"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-60"
             >
-              <input type="hidden" name="offerId" value={offerId} />
-              <input type="hidden" name="index" value={0} />
-              <button
-                type="submit"
-                aria-label="Remove primary image"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-              >
-                <span className="material-symbols-outlined text-lg">
-                  close
-                </span>
-              </button>
-            </form>
+              <span className="material-symbols-outlined text-lg">close</span>
+            </RemoveImageButton>
           )}
           <div className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs font-bold uppercase tracking-widest text-white">
             Primary
@@ -395,40 +389,26 @@ function ImageGallery({
                 />
                 {!disabled && (
                   <>
-                    <form
-                      action={setPrimaryOfferImageAction}
-                      className="absolute left-2 top-2"
+                    <SetPrimaryImageButton
+                      offerId={offerId}
+                      index={index}
+                      ariaLabel="Set as primary"
+                      className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-primary shadow-md hover:bg-white disabled:opacity-60"
                     >
-                      <input type="hidden" name="offerId" value={offerId} />
-                      <input type="hidden" name="index" value={index} />
-                      <button
-                        type="submit"
-                        aria-label="Set as primary"
-                        title="Set as primary"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-primary shadow-md hover:bg-white"
-                      >
-                        <span className="material-symbols-outlined text-base">
-                          star
-                        </span>
-                      </button>
-                    </form>
-                    <form
-                      action={removeOfferImageAction}
-                      className="absolute right-2 top-2"
+                      <span className="material-symbols-outlined text-base">
+                        star
+                      </span>
+                    </SetPrimaryImageButton>
+                    <RemoveImageButton
+                      offerId={offerId}
+                      index={index}
+                      ariaLabel="Remove image"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-error shadow-md hover:bg-white disabled:opacity-60"
                     >
-                      <input type="hidden" name="offerId" value={offerId} />
-                      <input type="hidden" name="index" value={index} />
-                      <button
-                        type="submit"
-                        aria-label="Remove image"
-                        title="Remove"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-error shadow-md hover:bg-white"
-                      >
-                        <span className="material-symbols-outlined text-base">
-                          close
-                        </span>
-                      </button>
-                    </form>
+                      <span className="material-symbols-outlined text-base">
+                        close
+                      </span>
+                    </RemoveImageButton>
                   </>
                 )}
               </div>
