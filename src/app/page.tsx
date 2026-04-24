@@ -352,7 +352,7 @@ export default async function DashboardPage({
             <div>Location</div>
             <div>Deadline</div>
             <div className="text-right">Qty</div>
-            <div className="text-right">Value</div>
+            <div className="text-right">Cost</div>
             <div className="sr-only">Action</div>
           </div>
           <ul className="divide-y divide-outline-variant/20">
@@ -415,10 +415,15 @@ export default async function DashboardPage({
                     <div className="text-right text-xs font-medium text-on-surface">
                       {o.quantity}
                     </div>
-                    <div className="text-right text-sm font-black text-primary">
-                      {o.estimatedValue > 0
-                        ? `₪${o.estimatedValue.toLocaleString()}`
-                        : "—"}
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-green-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white">
+                        Free
+                      </span>
+                      {o.estimatedValue > 0 && (
+                        <span className="text-[10px] text-gray-500">
+                          Est. ₪{o.estimatedValue.toLocaleString()}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-2 md:mt-0 md:justify-self-end">
                       <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
@@ -491,11 +496,17 @@ export default async function DashboardPage({
                           {getCategory(o.category).label} · {o.subCategory}
                         </p>
                       )}
+                      {o.estimatedValue > 0 && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Estimated Value: ₪{o.estimatedValue.toLocaleString()}
+                        </p>
+                      )}
                     </div>
-                    <span className="whitespace-nowrap font-black text-primary">
-                      {o.estimatedValue > 0
-                        ? `₪${o.estimatedValue.toLocaleString()}`
-                        : "—"}
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+                      <span className="material-symbols-outlined text-[12px]">
+                        volunteer_activism
+                      </span>
+                      Free
                     </span>
                   </div>
                   <div className="mb-6 flex flex-wrap gap-y-2">

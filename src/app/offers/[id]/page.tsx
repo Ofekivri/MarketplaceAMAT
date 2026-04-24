@@ -158,6 +158,12 @@ export default async function OfferDetailPage({
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
+                <span className="material-symbols-outlined text-sm">
+                  volunteer_activism
+                </span>
+                Free
+              </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                 <span className="material-symbols-outlined text-sm">
                   {category.icon}
@@ -170,12 +176,6 @@ export default async function OfferDetailPage({
                 </span>
               )}
             </div>
-
-            {offer.estimatedValue > 0 && (
-              <p className="mt-3 text-3xl font-black text-gray-900">
-                ₪{offer.estimatedValue.toLocaleString()}
-              </p>
-            )}
 
             <dl className="mt-3 divide-y divide-gray-100 border-y border-gray-100">
               <InfoRow
@@ -206,6 +206,13 @@ export default async function OfferDetailPage({
                   ) : null
                 }
               />
+              {offer.estimatedValue > 0 && (
+                <InfoRow
+                  icon="savings"
+                  label="Est. value"
+                  value={`₪${offer.estimatedValue.toLocaleString()}`}
+                />
+              )}
               <InfoRow
                 icon="mail"
                 label="Contact"
