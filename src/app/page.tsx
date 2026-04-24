@@ -36,13 +36,13 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
 function conditionBadge(cond: string) {
   switch (cond) {
     case "LIKE_NEW":
-      return { label: "Excellent Condition", bg: "bg-tertiary" };
+      return { label: "Excellent", cls: "excellent" };
     case "GOOD":
-      return { label: "Good Condition", bg: "bg-primary" };
+      return { label: "Good", cls: "good" };
     case "FAIR":
-      return { label: "Fair / Salvage", bg: "bg-secondary" };
+      return { label: "Fair", cls: "fair" };
     default:
-      return { label: "For Scrap", bg: "bg-error" };
+      return { label: "Salvage", cls: "salvage" };
   }
 }
 
@@ -187,110 +187,95 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {/* Search + header */}
-      <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      {/* Free banner */}
+      <div className="free-banner">
+        <div className="free-banner-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.5 2 7 0 5.5-4 10-10 11" />
+            <path d="M2 22c5-3 7-7.5 9-15" />
+          </svg>
+        </div>
+        <div className="free-banner-body">
+          <div className="free-banner-title">
+            <span className="pill">FREE TO CLAIM</span>
+            Everything here is an internal asset available at no cost
+          </div>
+          <div className="free-banner-desc">
+            Replacement values are shown as reference only — no budget, PO, or
+            transfer charge is required. Listings expire after the deadline and
+            are sent to salvage.
+          </div>
+        </div>
+      </div>
+
+      {/* Page head */}
+      <div className="page-head">
         <div>
-          <h2 className="text-2xl font-bold text-on-surface">Live Offers</h2>
-          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-900">
-            <span className="material-symbols-outlined text-sm text-blue-500">
-              info
-            </span>
-            All items are internal assets and available for transfer at no cost.
-          </p>
-          <p className="mt-2 text-sm text-on-surface-variant">
+          <div className="page-title">Live Offers</div>
+          <div className="page-subtitle">
             {category
               ? `Filtered: ${getCategory(category).label}${q ? ` · "${q}"` : ""}`
               : q
                 ? `Search results for "${q}"`
                 : "Available for immediate claim or salvage"}
-          </p>
-          <p className="mt-1 text-xs font-medium text-on-surface-variant">
-            {matchingCount === 0 ? (
-              <>Showing <span className="font-bold text-on-surface">0</span></>
-            ) : (
-              <>
-                Showing{" "}
-                <span className="font-bold text-on-surface">
-                  {skip + 1}–{skip + liveOffers.length}
-                </span>{" "}
-                of <span className="font-bold text-on-surface">{matchingCount}</span>
-                {totalPages > 1 && (
-                  <span className="text-outline">
-                    {" "}· page {page} of {totalPages}
-                  </span>
-                )}
-              </>
-            )}
-          </p>
+            {" · "}
+            {totalCount} items across {categoryCounts.length} categories
+          </div>
         </div>
-        <div className="flex w-full items-center gap-2 md:max-w-xl">
-          <form
-            action="/"
-            method="GET"
-            className="flex flex-1 items-center gap-2 rounded-full bg-surface-container px-4 py-2"
-          >
-            <span className="material-symbols-outlined text-outline">search</span>
+        <div className="page-head-right">
+          <form action="/" method="GET" className="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
             <input
               name="q"
               defaultValue={q}
-              placeholder="Search by item, description, or location..."
-              className="w-full border-none bg-transparent text-sm placeholder:text-outline focus:outline-none focus:ring-0"
+              placeholder="Search by item, description, or location…"
             />
             <input type="hidden" name="view" value={view} />
             {category && (
               <input type="hidden" name="category" value={category} />
             )}
-            {q && (
-              <Link
-                href={buildHref("", view, category)}
-                aria-label="Clear search"
-                className="rounded-full p-1 text-outline hover:bg-surface-container-high"
-              >
-                <span className="material-symbols-outlined text-sm">close</span>
-              </Link>
-            )}
           </form>
-          <div className="flex shrink-0 items-center gap-1 rounded-full bg-surface-container p-1">
+          <div className="view-toggle">
             <Link
               href={buildHref(q, "grid", category)}
               aria-label="Grid view"
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-                view === "grid"
-                  ? "bg-white text-primary shadow-sm"
-                  : "text-outline hover:text-on-surface"
-              }`}
+              className={view === "grid" ? "active" : ""}
             >
-              <span className="material-symbols-outlined text-lg">grid_view</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="7" height="7" x="3" y="3" rx="1" />
+                <rect width="7" height="7" x="14" y="3" rx="1" />
+                <rect width="7" height="7" x="14" y="14" rx="1" />
+                <rect width="7" height="7" x="3" y="14" rx="1" />
+              </svg>
             </Link>
             <Link
               href={buildHref(q, "list", category)}
               aria-label="List view"
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-                view === "list"
-                  ? "bg-white text-primary shadow-sm"
-                  : "text-outline hover:text-on-surface"
-              }`}
+              className={view === "list" ? "active" : ""}
             >
-              <span className="material-symbols-outlined text-lg">view_list</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" x2="21" y1="6" y2="6" />
+                <line x1="8" x2="21" y1="12" y2="12" />
+                <line x1="8" x2="21" y1="18" y2="18" />
+                <line x1="3" x2="3.01" y1="6" y2="6" />
+                <line x1="3" x2="3.01" y1="12" y2="12" />
+                <line x1="3" x2="3.01" y1="18" y2="18" />
+              </svg>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Category chips */}
-      <div className="mb-6 -mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1">
+      {/* Filters */}
+      <div className="filters">
         <Link
           href={buildHref(q, view, null)}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-            !category
-              ? "bg-primary text-white shadow-sm"
-              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-          }`}
+          className={`chip ${!category ? "active" : ""}`}
         >
-          All
-          <span className={`rounded-full px-1.5 text-[10px] ${!category ? "bg-white/20" : "bg-white/70"}`}>
-            {totalCount}
-          </span>
+          All <span className="count">{totalCount}</span>
         </Link>
         {CATEGORIES.map((c) => {
           const count = countByCategory.get(c.id) ?? 0;
@@ -300,24 +285,26 @@ export default async function DashboardPage({
             <Link
               key={c.id}
               href={buildHref(q, view, active ? null : c.id)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                active
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-              }`}
+              className={`chip ${active ? "active" : ""}`}
             >
-              <span className="material-symbols-outlined text-sm">{c.icon}</span>
-              {c.label}
-              <span
-                className={`rounded-full px-1.5 text-[10px] ${
-                  active ? "bg-white/20" : "bg-white/70"
-                }`}
-              >
-                {count}
-              </span>
+              {c.label} <span className="count">{count}</span>
             </Link>
           );
         })}
+        <span className="filter-sort">Deadline: soonest ▾</span>
+      </div>
+
+      {/* Results count */}
+      <div className="results-count">
+        {matchingCount === 0 ? (
+          <>Showing <b>0</b></>
+        ) : (
+          <>
+            Showing <b>{skip + 1}–{skip + liveOffers.length}</b> of{" "}
+            <b>{matchingCount}</b>
+            {totalPages > 1 && <> · page {page} of {totalPages}</>}
+          </>
+        )}
       </div>
 
       {/* Offer grid or list */}
@@ -392,9 +379,8 @@ export default async function DashboardPage({
                           {o.itemName}
                         </p>
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-white ${badge.bg}`}
-                          >
+                          <span className={`card-cond ${badge.cls}`}>
+                            <span className="dot" />
                             {badge.label}
                           </span>
                           {o.subCategory && (
@@ -474,11 +460,10 @@ export default async function DashboardPage({
                       </span>
                     </div>
                   )}
-                  <div
-                    className={`absolute left-3 top-3 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-white ${badge.bg}`}
-                  >
+                  <span className={`card-cond ${badge.cls} absolute left-3 top-3`}>
+                    <span className="dot" />
                     {badge.label}
-                  </div>
+                  </span>
                   <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-tight text-on-surface shadow-sm backdrop-blur">
                     <span className="material-symbols-outlined text-xs">
                       {getCategory(o.category).icon}
