@@ -247,26 +247,18 @@ export default async function MyOffersPage({
                         </Link>
 
                         <div className="flex flex-1 flex-col p-5">
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <Link
-                                href={`/offers/${o.id}`}
-                                className="text-lg font-bold text-on-surface hover:underline"
-                              >
-                                {o.itemName}
-                              </Link>
-                              {o.estimatedValue > 0 && (
-                                <p className="mt-1 text-xs text-gray-500">
-                                  Estimated Value: ₪{o.estimatedValue.toLocaleString()}
-                                </p>
-                              )}
-                            </div>
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
-                              <span className="material-symbols-outlined text-[12px]">
-                                volunteer_activism
-                              </span>
-                              Free
-                            </span>
+                          <div className="mb-2 min-w-0">
+                            <Link
+                              href={`/offers/${o.id}`}
+                              className="text-lg font-bold text-on-surface hover:underline"
+                            >
+                              {o.itemName}
+                            </Link>
+                            {o.estimatedValue > 0 && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                Estimated Value: ₪{o.estimatedValue.toLocaleString()}
+                              </p>
+                            )}
                           </div>
 
                           <div className="mb-4 flex flex-wrap gap-y-2">

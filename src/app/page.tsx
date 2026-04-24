@@ -191,7 +191,13 @@ export default async function DashboardPage({
       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">Live Offers</h2>
-          <p className="mt-1 text-sm text-on-surface-variant">
+          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-900">
+            <span className="material-symbols-outlined text-sm text-blue-500">
+              info
+            </span>
+            All items are internal assets and available for transfer at no cost.
+          </p>
+          <p className="mt-2 text-sm text-on-surface-variant">
             {category
               ? `Filtered: ${getCategory(category).label}${q ? ` · "${q}"` : ""}`
               : q
@@ -352,7 +358,7 @@ export default async function DashboardPage({
             <div>Location</div>
             <div>Deadline</div>
             <div className="text-right">Qty</div>
-            <div className="text-right">Cost</div>
+            <div className="text-right">Est. Value</div>
             <div className="sr-only">Action</div>
           </div>
           <ul className="divide-y divide-outline-variant/20">
@@ -415,15 +421,10 @@ export default async function DashboardPage({
                     <div className="text-right text-xs font-medium text-on-surface">
                       {o.quantity}
                     </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-green-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white">
-                        Free
-                      </span>
-                      {o.estimatedValue > 0 && (
-                        <span className="text-[10px] text-gray-500">
-                          Est. ₪{o.estimatedValue.toLocaleString()}
-                        </span>
-                      )}
+                    <div className="text-right text-xs text-gray-500">
+                      {o.estimatedValue > 0
+                        ? `₪${o.estimatedValue.toLocaleString()}`
+                        : "—"}
                     </div>
                     <div className="mt-2 md:mt-0 md:justify-self-end">
                       <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
@@ -486,28 +487,20 @@ export default async function DashboardPage({
                   </div>
                 </div>
                 <div className="p-6">
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-bold text-on-surface">
-                        {o.itemName}
-                      </h3>
-                      {o.subCategory && (
-                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                          {getCategory(o.category).label} · {o.subCategory}
-                        </p>
-                      )}
-                      {o.estimatedValue > 0 && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Estimated Value: ₪{o.estimatedValue.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
-                      <span className="material-symbols-outlined text-[12px]">
-                        volunteer_activism
-                      </span>
-                      Free
-                    </span>
+                  <div className="mb-2 min-w-0">
+                    <h3 className="text-lg font-bold text-on-surface">
+                      {o.itemName}
+                    </h3>
+                    {o.subCategory && (
+                      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                        {getCategory(o.category).label} · {o.subCategory}
+                      </p>
+                    )}
+                    {o.estimatedValue > 0 && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Estimated Value: ₪{o.estimatedValue.toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div className="mb-6 flex flex-wrap gap-y-2">
                     <div className="flex w-1/2 items-center gap-2">

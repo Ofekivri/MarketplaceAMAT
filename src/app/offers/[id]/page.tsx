@@ -158,12 +158,6 @@ export default async function OfferDetailPage({
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
-                <span className="material-symbols-outlined text-sm">
-                  volunteer_activism
-                </span>
-                Free
-              </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                 <span className="material-symbols-outlined text-sm">
                   {category.icon}
