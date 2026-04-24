@@ -344,7 +344,7 @@ export async function extendOfferDeadlineAction(formData: FormData) {
 
   await prisma.offer.update({
     where: { id: offerId },
-    data: { scrapDate: nextScrapDate },
+    data: { scrapDate: nextScrapDate, overdueNotifiedAt: null },
   });
 
   revalidatePath("/");

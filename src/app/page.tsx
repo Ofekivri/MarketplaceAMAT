@@ -439,6 +439,7 @@ export default async function DashboardPage({
           {liveOffers.map((o) => {
             const days = daysUntil(o.scrapDate);
             const urgent = days <= 1;
+            const overdue = days <= 0;
             const badge = conditionBadge(o.condition);
             return (
               <Link
@@ -448,6 +449,11 @@ export default async function DashboardPage({
                 className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div className="relative h-48 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
+                  {overdue && (
+                    <div className="absolute inset-x-0 top-0 z-10 bg-amber-500/95 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-white shadow-sm backdrop-blur">
+                      Overdue
+                    </div>
+                  )}
                   {o.images[0] ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
