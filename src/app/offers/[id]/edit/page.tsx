@@ -71,21 +71,23 @@ export default async function EditOfferPage({
         </div>
       )}
 
+      {/* Must live outside the update <form>: its add/remove/primary buttons
+          each render their own <form>, and HTML does not allow nested forms. */}
+      <Card>
+        <CardHeader icon="photo_library" title="Asset Visuals" />
+        <ImageGallery
+          offerId={offer.id}
+          images={offer.images}
+          disabled={readOnly}
+        />
+      </Card>
+
       <form action={updateOfferAction} id="edit-offer-form">
         <input type="hidden" name="offerId" value={offer.id} />
 
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-          {/* LEFT: Visuals & Description */}
+          {/* LEFT: Description */}
           <div className="space-y-8 lg:col-span-7">
-            <Card>
-              <CardHeader icon="photo_library" title="Asset Visuals" />
-              <ImageGallery
-                offerId={offer.id}
-                images={offer.images}
-                disabled={readOnly}
-              />
-            </Card>
-
             <Card>
               <CardHeader icon="description" title="Details & Specifications" />
               <div className="space-y-6">
