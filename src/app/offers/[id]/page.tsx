@@ -171,12 +171,6 @@ export default async function OfferDetailPage({
               )}
             </div>
 
-            {offer.estimatedValue > 0 && (
-              <p className="mt-3 text-3xl font-black text-gray-900">
-                ₪{offer.estimatedValue.toLocaleString()}
-              </p>
-            )}
-
             <dl className="mt-3 divide-y divide-gray-100 border-y border-gray-100">
               <InfoRow
                 icon="inventory_2"
@@ -206,6 +200,13 @@ export default async function OfferDetailPage({
                   ) : null
                 }
               />
+              {offer.estimatedValue > 0 && (
+                <InfoRow
+                  icon="savings"
+                  label="Est. value"
+                  value={`₪${offer.estimatedValue.toLocaleString()}`}
+                />
+              )}
               <InfoRow
                 icon="mail"
                 label="Contact"
