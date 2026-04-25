@@ -13,6 +13,13 @@ export function MobileNav() {
         <span className="text-[10px] font-bold">Dash</span>
       </Link>
       <Link
+        href="/my-offers"
+        className="flex flex-col items-center gap-1 text-on-surface-variant"
+      >
+        <span className="material-symbols-outlined">inventory</span>
+        <span className="text-[10px] font-medium">Offers</span>
+      </Link>
+      <Link
         href="/offers/new"
         className="-mt-8 rounded-full bg-primary p-3 text-white shadow-lg"
       >
