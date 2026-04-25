@@ -1,25 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { formatCondition, formatDate, daysUntil } from "@/lib/format";
+import { OfferGridCard } from "@/components/OfferGridCard";
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "My Offers | SecondLife" };
-
-function iconFor(itemName: string): string {
-  const n = itemName.toLowerCase();
-  if (n.includes("chair") || n.includes("desk") || n.includes("furniture"))
-    return "chair_alt";
-  if (n.includes("motor") || n.includes("pump")) return "settings";
-  if (n.includes("cable") || n.includes("wire") || n.includes("electric"))
-    return "bolt";
-  if (n.includes("tool")) return "construction";
-  if (n.includes("pallet") || n.includes("box")) return "inventory_2";
-  if (n.includes("monitor") || n.includes("screen") || n.includes("computer"))
-    return "monitor";
-  return "category";
-}
 
 const STATUS_STYLE: Record<string, string> = {
   AVAILABLE: "bg-green-100 text-green-800",
@@ -212,108 +197,9 @@ export default async function MyOffersPage({
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {sectionOffers.map((o) => {
-                    const days = daysUntil(o.scrapDate);
-                    const urgent = o.status === "AVAILABLE" && days <= 1;
-                    const editable =
-                      o.status !== "SCRAPPED" && o.status !== "COMPLETED";
-                    return (
-                      <div
-                        key={o.id}
-                        className="group flex flex-col overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl"
-                      >
-                        <Link
-                          href={`/offers/${o.id}`}
-                          className="relative block h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container"
-                        >
-                          {o.images.length > 0 ? (
-                            <Image
-                              src={o.images[0]}
-                              alt={o.itemName}
-                              fill
-                              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                              className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
-                              <span className="material-symbols-outlined text-[96px]">
-                                {iconFor(o.itemName)}
-                              </span>
-                            </div>
-                          )}
-                          <span
-                            className={`absolute left-3 top-3 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${STATUS_STYLE[o.status] ?? "bg-gray-100"}`}
-                          >
-                            {o.status}
-                          </span>
-                        </Link>
-
-                        <div className="flex flex-1 flex-col p-5">
-                          <div className="mb-2 min-w-0">
-                            <Link
-                              href={`/offers/${o.id}`}
-                              className="text-lg font-bold text-on-surface hover:underline"
-                            >
-                              {o.itemName}
-                            </Link>
-                            {o.estimatedValue > 0 && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                Estimated Value: ${o.estimatedValue.toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="mb-4 flex flex-wrap gap-y-2">
-                            <Meta icon="location_on" text={o.location} wide />
-                            <Meta
-                              icon="inventory_2"
-                              text={`qty ${o.quantity} · ${formatCondition(o.condition)}`}
-                              wide
-                            />
-                            <Meta
-                              icon="schedule"
-                              text={
-                                o.status === "AVAILABLE"
-                                  ? days > 0
-                                    ? `Deadline: ${days}d left`
-                                    : `Deadline: expired ${formatDate(o.scrapDate)}`
-                                  : `Scrap by ${formatDate(o.scrapDate)}`
-                              }
-                              wide
-                              highlight={urgent}
-                            />
-                            {o.claim && o.status === "CLAIMED" && (
-                              <Meta
-                                icon="assignment_ind"
-                                text={`Claimed by ${o.claim.claimingUser.name}`}
-                                wide
-                              />
-                            )}
-                          </div>
-
-                          <div className="mt-auto flex gap-2">
-                            <Link
-                              href={`/offers/${o.id}`}
-                              className="flex-1 rounded-lg bg-surface-container py-2 text-center text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-high"
-                            >
-                              View
-                            </Link>
-                            {editable && (
-                              <Link
-                                href={`/offers/${o.id}/edit`}
-                                className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-center text-sm font-bold text-white transition-colors hover:bg-primary/90"
-                              >
-                                <span className="material-symbols-outlined text-base">
-                                  edit
-                                </span>
-                                Edit
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {sectionOffers.map((o) => (
+                    <OfferGridCard key={o.id} offer={o} mode="owner" />
+                  ))}
                 </div>
               </section>
             );
@@ -351,27 +237,3 @@ function Stat({
   );
 }
 
-function Meta({
-  icon,
-  text,
-  wide,
-  highlight,
-}: {
-  icon: string;
-  text: string;
-  wide?: boolean;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`flex items-center gap-2 ${wide ? "w-full" : "w-1/2"}`}>
-      <span className="material-symbols-outlined text-xs text-outline">
-        {icon}
-      </span>
-      <span
-        className={`truncate text-xs font-medium ${highlight ? "text-error font-bold uppercase tracking-tighter" : "text-on-surface-variant"}`}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
