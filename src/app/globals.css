@@ -183,8 +183,17 @@ body {
 }
 .chip.active .count { background: rgba(255,255,255,0.25); }
 
-.filter-sort {
+.filter-sort-wrap {
   margin-left: auto;
+  position: relative;
+}
+.filter-sort-wrap > summary {
+  list-style: none;
+}
+.filter-sort-wrap > summary::-webkit-details-marker {
+  display: none;
+}
+.filter-sort {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -195,8 +204,36 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid #e5e1f0;
-  cursor: default;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
 }
+.filter-sort:hover { background: #f1effa; border-color: #c9c1e0; }
+.filter-sort-wrap[open] > .filter-sort { background: #f1effa; border-color: #c9c1e0; }
+.filter-sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.375rem);
+  z-index: 20;
+  min-width: 12rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e1f0;
+  border-radius: 0.625rem;
+  box-shadow: 0 8px 24px rgba(76, 45, 158, 0.12);
+}
+.filter-sort-option {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1f2937;
+  text-decoration: none;
+  cursor: pointer;
+}
+.filter-sort-option:hover { background: #f1effa; }
+.filter-sort-option.active { background: #4c2d9e; color: #ffffff; font-weight: 700; }
 
 .results-count {
   margin-bottom: 1rem;
