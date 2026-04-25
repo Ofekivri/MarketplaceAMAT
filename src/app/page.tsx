@@ -7,17 +7,47 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Prisma } from "@prisma/client";
 
+type SortKey = "deadline" | "value" | "newest";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "deadline", label: "Deadline: soonest" },
+  { key: "value", label: "Value: highest" },
+  { key: "newest", label: "Recently posted" },
+];
+
+function isValidSort(s: string): s is SortKey {
+  return s === "deadline" || s === "value" || s === "newest";
+}
+
+function sortLabel(s: SortKey): string {
+  return SORT_OPTIONS.find((o) => o.key === s)?.label ?? "Deadline: soonest";
+}
+
+function sortToOrderBy(s: SortKey): Prisma.OfferOrderByWithRelationInput[] {
+  switch (s) {
+    case "value":
+      return [{ estimatedValue: "desc" }, { scrapDate: "asc" }];
+    case "newest":
+      return [{ createdAt: "desc" }];
+    case "deadline":
+    default:
+      return [{ scrapDate: "asc" }];
+  }
+}
+
 function buildHref(
   q: string,
   view: "grid" | "list",
   category: string | null,
   page: number = 1,
+  sort: SortKey = "deadline",
 ): string {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (view === "list") params.set("view", "list");
   if (category) params.set("category", category);
   if (page > 1) params.set("page", String(page));
+  if (sort !== "deadline") params.set("sort", sort);
   const s = params.toString();
   return s ? `/?${s}` : "/";
 }
@@ -50,13 +80,14 @@ function conditionBadge(cond: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; view?: string; category?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; view?: string; category?: string; page?: string; sort?: string }>;
 }) {
   const user = await getCurrentUser();
-  const { q: rawQ, view: rawView, category: rawCat, page: rawPage } = await searchParams;
+  const { q: rawQ, view: rawView, category: rawCat, page: rawPage, sort: rawSort } = await searchParams;
   const q = rawQ?.trim() ?? "";
   const view: "grid" | "list" = rawView === "list" ? "list" : "grid";
   const category = rawCat && isValidCategory(rawCat) ? rawCat : null;
+  const sort: SortKey = rawSort && isValidSort(rawSort) ? rawSort : "deadline";
   const take = view === "list" ? 20 : 24;
 
   if (!user) {
@@ -117,7 +148,7 @@ export default async function DashboardPage({
         AND: filters,
       },
       include: { offeringUser: true },
-      orderBy: { scrapDate: "asc" },
+      orderBy: sortToOrderBy(sort),
       skip,
       take,
     }),
@@ -241,7 +272,7 @@ export default async function DashboardPage({
           </form>
           <div className="view-toggle">
             <Link
-              href={buildHref(q, "grid", category)}
+              href={buildHref(q, "grid", category, 1, sort)}
               aria-label="Grid view"
               className={view === "grid" ? "active" : ""}
             >
@@ -253,7 +284,7 @@ export default async function DashboardPage({
               </svg>
             </Link>
             <Link
-              href={buildHref(q, "list", category)}
+              href={buildHref(q, "list", category, 1, sort)}
               aria-label="List view"
               className={view === "list" ? "active" : ""}
             >
@@ -273,7 +304,7 @@ export default async function DashboardPage({
       {/* Filters */}
       <div className="filters">
         <Link
-          href={buildHref(q, view, null)}
+          href={buildHref(q, view, null, 1, sort)}
           className={`chip ${!category ? "active" : ""}`}
         >
           All <span className="count">{totalCount}</span>
@@ -285,14 +316,29 @@ export default async function DashboardPage({
           return (
             <Link
               key={c.id}
-              href={buildHref(q, view, active ? null : c.id)}
+              href={buildHref(q, view, active ? null : c.id, 1, sort)}
               className={`chip ${active ? "active" : ""}`}
             >
               {c.label} <span className="count">{count}</span>
             </Link>
           );
         })}
-        <span className="filter-sort">Deadline: soonest ▾</span>
+        <details className="filter-sort-wrap">
+          <summary className="filter-sort">
+            {sortLabel(sort)} ▾
+          </summary>
+          <div className="filter-sort-menu">
+            {SORT_OPTIONS.map((opt) => (
+              <Link
+                key={opt.key}
+                href={buildHref(q, view, category, 1, opt.key)}
+                className={`filter-sort-option ${opt.key === sort ? "active" : ""}`}
+              >
+                {opt.label}
+              </Link>
+            ))}
+          </div>
+        </details>
       </div>
 
       {/* Results count */}
@@ -548,7 +594,7 @@ export default async function DashboardPage({
         >
           {page > 1 ? (
             <Link
-              href={buildHref(q, view, category, page - 1)}
+              href={buildHref(q, view, category, page - 1, sort)}
               className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
             >
               <span className="material-symbols-outlined text-sm">chevron_left</span>
@@ -579,7 +625,7 @@ export default async function DashboardPage({
             ) : (
               <Link
                 key={n}
-                href={buildHref(q, view, category, n)}
+                href={buildHref(q, view, category, n, sort)}
                 className="flex h-9 min-w-9 items-center justify-center rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
               >
                 {n}
@@ -588,7 +634,7 @@ export default async function DashboardPage({
           )}
           {page < totalPages ? (
             <Link
-              href={buildHref(q, view, category, page + 1)}
+              href={buildHref(q, view, category, page + 1, sort)}
               className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
             >
               Next
