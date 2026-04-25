@@ -52,7 +52,7 @@ export default async function RootLayout({
       </head>
       <body className="flex min-h-screen overflow-hidden bg-surface text-on-surface">
         <Sidebar watchlistCount={watchlistCount} />
-        <main className="flex h-screen flex-1 flex-col overflow-y-auto">
+        <main className="flex h-screen flex-1 flex-col overflow-x-hidden overflow-y-auto">
           <TopBar user={user} users={allUsers} unreadCount={unreadCount} />
           <div className="mx-auto w-full max-w-[1440px] flex-1 px-8 py-6 pb-24 md:pb-6">
             {children}
