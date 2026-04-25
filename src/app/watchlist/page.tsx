@@ -50,7 +50,7 @@ export default async function WatchlistPage() {
       {subs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
           No saved searches yet. Search something on the{" "}
-          <Link href="/" className="text-amat-blue hover:underline">
+          <Link href="/" className="text-primary hover:underline">
             dashboard
           </Link>
           &nbsp;— if nothing matches, you&apos;ll see a &quot;Notify me&quot;
@@ -87,7 +87,7 @@ export default async function WatchlistPage() {
                 <div className="flex flex-col gap-2 text-right">
                   <Link
                     href={`/?q=${encodeURIComponent(s.query)}`}
-                    className="text-sm text-amat-blue hover:underline"
+                    className="text-sm text-primary hover:underline"
                   >
                     Search now →
                   </Link>

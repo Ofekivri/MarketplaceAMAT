@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { formatCondition, formatDate, daysUntil } from "@/lib/format";
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "My Offers | SecondLife" };
@@ -226,11 +227,12 @@ export default async function MyOffersPage({
                           className="relative block h-40 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container"
                         >
                           {o.images.length > 0 ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={o.images[0]}
                               alt={o.itemName}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              fill
+                              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
@@ -256,7 +258,7 @@ export default async function MyOffersPage({
                             </Link>
                             {o.estimatedValue > 0 && (
                               <p className="mt-1 text-xs text-gray-500">
-                                Estimated Value: ₪{o.estimatedValue.toLocaleString()}
+                                Estimated Value: ${o.estimatedValue.toLocaleString()}
                               </p>
                             )}
                           </div>

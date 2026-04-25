@@ -79,7 +79,7 @@ export function ActivityTimeline({
                   <span className="material-symbols-outlined text-[13px]">
                     savings
                   </span>
-                  ₪{estimatedValue.toLocaleString()} saved from scrap
+                  ${estimatedValue.toLocaleString()} saved from scrap
                 </span>
               ) : null
             }

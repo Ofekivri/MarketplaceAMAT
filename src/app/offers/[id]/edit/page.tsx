@@ -166,7 +166,7 @@ export default async function EditOfferPage({
                   </p>
                 </Field>
 
-                <Field label="Estimated value (NIS)">
+                <Field label="Estimated value (USD)">
                   <input
                     name="estimatedValue"
                     type="number"

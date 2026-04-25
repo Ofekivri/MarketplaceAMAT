@@ -95,7 +95,7 @@ export default async function OfferDetailPage({
               <span className="material-symbols-outlined text-base">
                 savings
               </span>
-              ₪{offer.estimatedValue.toLocaleString()} saved from the scrap
+              ${offer.estimatedValue.toLocaleString()} saved from the scrap
               bin
             </div>
           )}
@@ -204,7 +204,7 @@ export default async function OfferDetailPage({
                 <InfoRow
                   icon="savings"
                   label="Est. value"
-                  value={`₪${offer.estimatedValue.toLocaleString()}`}
+                  value={`$${offer.estimatedValue.toLocaleString()}`}
                 />
               )}
               <InfoRow

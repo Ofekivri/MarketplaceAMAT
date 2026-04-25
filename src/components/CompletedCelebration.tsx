@@ -97,7 +97,7 @@ export function CompletedCelebration({
               <span className="material-symbols-outlined text-base">
                 savings
               </span>
-              ₪{estimatedValue.toLocaleString()} saved
+              ${estimatedValue.toLocaleString()} saved
             </div>
           )}
 

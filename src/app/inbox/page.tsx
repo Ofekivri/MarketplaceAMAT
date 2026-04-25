@@ -25,7 +25,7 @@ export default async function InboxPage() {
         <h1 className="text-xl font-semibold">Inbox</h1>
         {hasUnread && (
           <form action={markAllReadAction}>
-            <button className="text-sm text-amat-blue hover:underline">
+            <button className="text-sm text-primary hover:underline">
               Mark all read
             </button>
           </form>
@@ -43,7 +43,7 @@ export default async function InboxPage() {
               key={n.id}
               className={`rounded-lg border bg-white p-4 shadow-sm ${
                 n.readAt === null
-                  ? "border-amat-accent/40 bg-amat-accent/5"
+                  ? "border-primary/40 bg-primary/5"
                   : "border-gray-200"
               }`}
             >
@@ -51,7 +51,7 @@ export default async function InboxPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     {n.readAt === null && (
-                      <span className="h-2 w-2 rounded-full bg-amat-accent" />
+                      <span className="h-2 w-2 rounded-full bg-primary" />
                     )}
                     <p className="font-medium">{n.title}</p>
                   </div>
@@ -64,7 +64,7 @@ export default async function InboxPage() {
                   {n.link && (
                     <Link
                       href={n.link}
-                      className="text-sm text-amat-blue hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       View →
                     </Link>

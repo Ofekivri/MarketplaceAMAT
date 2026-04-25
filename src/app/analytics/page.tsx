@@ -42,7 +42,7 @@ export default async function AnalyticsPage() {
         <Stat label="Items scrapped" value={totalScrapped.toString()} />
         <Stat
           label="Value saved"
-          value={`₪${valueSaved.toLocaleString()}`}
+          value={`$${valueSaved.toLocaleString()}`}
         />
       </div>
 
