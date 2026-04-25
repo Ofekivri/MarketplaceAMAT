@@ -52,7 +52,7 @@ model Claim {
   offer           Offer    @relation(fields: [offerId], references: [id])
   claimingUserId  String
   claimingUser    User     @relation("ClaimingUser", fields: [claimingUserId], references: [id])
-  status          String   @default("PENDING") // PENDING | PICKUP_SCHEDULED | COMPLETED | CANCELLED
+  status          String   @default("PENDING") // PENDING | COMPLETED | CANCELLED
   notes           String?
   createdAt       DateTime @default(now())
   completedAt     DateTime?

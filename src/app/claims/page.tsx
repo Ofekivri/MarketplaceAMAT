@@ -38,10 +38,7 @@ export default async function ClaimsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const toCollect = claims.filter((c) =>
-    ["PENDING", "PICKUP_SCHEDULED"].includes(c.status),
-  );
-  const scheduled = claims.filter((c) => c.status === "PICKUP_SCHEDULED");
+  const toCollect = claims.filter((c) => c.status === "PENDING");
   const collected = claims.filter((c) => c.status === "COMPLETED");
 
   return (
@@ -75,9 +72,9 @@ export default async function ClaimsPage() {
           accent="text-primary"
         />
         <StatTile
-          label="Scheduled"
-          value={String(scheduled.length).padStart(2, "0")}
-          sub="Logistics confirmed"
+          label="Collected"
+          value={String(collected.length).padStart(2, "0")}
+          sub="Pickups completed"
           accent="text-tertiary"
         />
       </div>

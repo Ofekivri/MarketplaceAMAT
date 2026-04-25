@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { formatCondition, daysUntil } from "@/lib/format";
+import { daysUntil } from "@/lib/format";
 import { CATEGORIES, getCategory, isValidCategory } from "@/lib/categories";
+import { conditionBadge } from "@/lib/conditionBadge";
 import { createSearchSubscriptionAction } from "@/lib/actions";
+import { OfferGridCard } from "@/components/OfferGridCard";
 import Link from "next/link";
 import Image from "next/image";
 import type { Prisma } from "@prisma/client";
@@ -62,19 +64,6 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
     out.push(nums[i]);
   }
   return out;
-}
-
-function conditionBadge(cond: string) {
-  switch (cond) {
-    case "LIKE_NEW":
-      return { label: "Excellent", cls: "excellent" };
-    case "GOOD":
-      return { label: "Good", cls: "good" };
-    case "FAIR":
-      return { label: "Fair", cls: "fair" };
-    default:
-      return { label: "Salvage", cls: "salvage" };
-  }
 }
 
 export default async function DashboardPage({
@@ -163,7 +152,7 @@ export default async function DashboardPage({
     prisma.claim.findMany({
       where: {
         claimingUserId: user.id,
-        status: { in: ["PENDING", "PICKUP_SCHEDULED"] },
+        status: "PENDING",
       },
       include: { offer: true },
       orderBy: { createdAt: "asc" },
@@ -476,114 +465,9 @@ export default async function DashboardPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {liveOffers.map((o) => {
-            const days = daysUntil(o.scrapDate);
-            const urgent = days <= 1;
-            const overdue = days <= 0;
-            const badge = conditionBadge(o.condition);
-            return (
-              <Link
-                key={o.id}
-                href={`/offers/${o.id}`}
-                aria-label={`View and claim ${o.itemName}`}
-                className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
-                  {overdue && (
-                    <div className="absolute inset-x-0 top-0 z-10 bg-amber-500/95 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-white shadow-sm backdrop-blur">
-                      Overdue
-                    </div>
-                  )}
-                  {o.images[0] ? (
-                    <Image
-                      src={o.images[0]}
-                      alt={o.itemName}
-                      fill
-                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
-                      <span className="material-symbols-outlined text-[96px]">
-                        {getCategory(o.category).icon}
-                      </span>
-                    </div>
-                  )}
-                  <span className={`card-cond ${badge.cls} absolute left-3 top-3`}>
-                    <span className="dot" />
-                    {badge.label}
-                  </span>
-                  <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-tight text-on-surface shadow-sm backdrop-blur">
-                    <span className="material-symbols-outlined text-xs">
-                      {getCategory(o.category).icon}
-                    </span>
-                    {getCategory(o.category).label}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="mb-2 min-w-0">
-                    <h3 className="text-lg font-bold text-on-surface">
-                      {o.itemName}
-                    </h3>
-                    {o.subCategory && (
-                      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                        {getCategory(o.category).label} · {o.subCategory}
-                      </p>
-                    )}
-                    {o.estimatedValue > 0 && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Estimated Value: ${o.estimatedValue.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                  <div className="mb-6 flex flex-wrap gap-y-2">
-                    <div className="flex w-1/2 items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-outline">
-                        domain
-                      </span>
-                      <span className="text-xs font-medium text-on-surface-variant">
-                        {o.offeringUser.department}
-                      </span>
-                    </div>
-                    <div className="flex w-1/2 items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-outline">
-                        location_on
-                      </span>
-                      <span className="truncate text-xs font-medium text-on-surface-variant">
-                        {o.location}
-                      </span>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-outline">
-                        schedule
-                      </span>
-                      <span
-                        className={`text-xs font-bold uppercase tracking-tighter ${urgent ? "text-error" : "text-on-surface-variant"}`}
-                      >
-                        Deadline:{" "}
-                        {days > 0 ? `${days}d left` : "expired"}
-                      </span>
-                    </div>
-                    <div className="flex w-full items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-outline">
-                        inventory_2
-                      </span>
-                      <span className="text-xs font-medium text-on-surface-variant">
-                        qty {o.quantity} · {formatCondition(o.condition)}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    role="button"
-                    aria-hidden="true"
-                    className="block w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white"
-                  >
-                    Claim Asset
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+          {liveOffers.map((o) => (
+            <OfferGridCard key={o.id} offer={o} mode="browse" />
+          ))}
         </div>
       )}
 
