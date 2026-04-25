@@ -124,7 +124,7 @@ export default async function MyImpactPage() {
 
   const timeline: ActivityItem[] = buildTimeline(myOffers, myClaims);
 
-  const rank = await computeRank(user.id, user.department, quarterStart, now);
+  const rank = await computeRank(user.id, quarterStart, now);
 
   const data: MyImpactData = {
     valueRehomed,
@@ -139,7 +139,6 @@ export default async function MyImpactPage() {
     kgDiverted: Math.round(valueRehomed * KG_PER_DOLLAR),
     rank: rank.position,
     rankTotal: rank.total,
-    department: user.department,
     months,
     categories,
     badges,
@@ -292,37 +291,24 @@ function buildTimeline(
 
 async function computeRank(
   userId: string,
-  department: string,
   quarterStart: Date,
   now: Date,
 ): Promise<{ position: number | null; total: number }> {
-  const users = await prisma.user.findMany({
-    where: { department },
-    select: { id: true },
-  });
-  const userIds = users.map((u) => u.id);
-  if (userIds.length === 0) return { position: null, total: 0 };
-
   const [postedThisQuarter, claimsThisQuarter] = await Promise.all([
     prisma.offer.findMany({
       where: {
-        offeringUserId: { in: userIds },
         status: { in: ["CLAIMED", "COMPLETED"] },
         updatedAt: { gte: quarterStart, lte: now },
       },
       select: { offeringUserId: true, estimatedValue: true },
     }),
     prisma.claim.findMany({
-      where: {
-        claimingUserId: { in: userIds },
-        createdAt: { gte: quarterStart, lte: now },
-      },
+      where: { createdAt: { gte: quarterStart, lte: now } },
       select: { claimingUserId: true, offer: { select: { estimatedValue: true } } },
     }),
   ]);
 
   const totals = new Map<string, number>();
-  for (const id of userIds) totals.set(id, 0);
   for (const o of postedThisQuarter) {
     totals.set(
       o.offeringUserId,
@@ -340,6 +326,6 @@ async function computeRank(
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1]);
   const position = ranked.findIndex(([id]) => id === userId);
-  if (position < 0) return { position: null, total: userIds.length };
-  return { position: position + 1, total: userIds.length };
+  if (position < 0) return { position: null, total: ranked.length };
+  return { position: position + 1, total: ranked.length };
 }

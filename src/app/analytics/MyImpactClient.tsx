@@ -34,7 +34,6 @@ export type MyImpactData = {
   kgDiverted: number;
   rank: number | null;
   rankTotal: number;
-  department: string;
   months: MonthBucket[];
   categories: Category[];
   badges: Badge[];
@@ -527,8 +526,7 @@ export function MyImpactClient({ data }: { data: MyImpactData }) {
         {data.rank && (
           <div className="hero-badge">
             <span className="rank-dot">{data.rank}</span>
-            Rank {data.rank} of {data.rankTotal} contributors in{" "}
-            {data.department} this quarter
+            Rank {data.rank} of {data.rankTotal} contributors this quarter
           </div>
         )}
       </div>
