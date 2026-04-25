@@ -34,8 +34,8 @@ const primary: Item[] = [
   },
   {
     href: "/analytics",
-    icon: "analytics",
-    label: "Analytics",
+    icon: "insights",
+    label: "My Impact",
     matchPaths: ["/analytics"],
   },
   {

@@ -1,105 +1,345 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/session";
+import { getCategory } from "@/lib/categories";
+import { formatRelative } from "@/lib/format";
+import {
+  MyImpactClient,
+  type Badge,
+  type Category,
+  type MonthBucket,
+  type ActivityItem,
+  type MyImpactData,
+} from "./MyImpactClient";
 
-export default async function AnalyticsPage() {
-  const [allOffers, claims] = await Promise.all([
-    prisma.offer.findMany({ include: { offeringUser: true } }),
+export const metadata = { title: "My Impact | SecondLife" };
+
+const KG_PER_DOLLAR = 0.025;
+
+export default async function MyImpactPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const [myOffers, myClaims, deptUsers] = await Promise.all([
+    prisma.offer.findMany({
+      where: { offeringUserId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
     prisma.claim.findMany({
-      include: {
-        claimingUser: true,
-        offer: true,
-      },
+      where: { claimingUserId: user.id },
+      include: { offer: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({
+      where: { department: user.department },
+      select: { id: true },
     }),
   ]);
 
-  const totalOffered = allOffers.length;
-  const totalClaimed = allOffers.filter((o) =>
-    ["CLAIMED", "COMPLETED"].includes(o.status),
-  ).length;
-  const totalScrapped = allOffers.filter((o) => o.status === "SCRAPPED").length;
-  const claimRate =
-    totalOffered === 0 ? 0 : Math.round((totalClaimed / totalOffered) * 100);
-  const valueSaved = allOffers
-    .filter((o) => ["CLAIMED", "COMPLETED"].includes(o.status))
+  const deptUserIds = deptUsers.map((u) => u.id);
+
+  const postedRehomedValue = myOffers
+    .filter((o) => o.status === "CLAIMED" || o.status === "COMPLETED")
     .reduce((sum, o) => sum + o.estimatedValue, 0);
-
-  const claimsByDept = countBy(
-    claims.map((c) => c.claimingUser.department),
+  const claimedValue = myClaims.reduce(
+    (sum, c) => sum + c.offer.estimatedValue,
+    0,
   );
-  const offersByDept = countBy(
-    allOffers.map((o) => o.offeringUser.department),
+  const valueRehomed = postedRehomedValue + claimedValue;
+
+  const postedAvailable = myOffers.filter(
+    (o) => o.status === "AVAILABLE",
+  ).length;
+  const postedClaimed = myOffers.filter((o) => o.status === "CLAIMED").length;
+  const postedCompleted = myOffers.filter(
+    (o) => o.status === "COMPLETED",
+  ).length;
+  const postedExpired = myOffers.filter((o) => o.status === "SCRAPPED").length;
+
+  const now = new Date();
+  const quarterStart = startOfQuarter(now);
+  const lastQuarterStart = startOfQuarter(addMonths(quarterStart, -3));
+  const valueInRange = (start: Date, end: Date) => {
+    const inRange = (d: Date) => d >= start && d < end;
+    const fromPosted = myOffers
+      .filter(
+        (o) =>
+          (o.status === "CLAIMED" || o.status === "COMPLETED") &&
+          inRange(o.updatedAt),
+      )
+      .reduce((s, o) => s + o.estimatedValue, 0);
+    const fromClaimed = myClaims
+      .filter((c) => inRange(c.createdAt))
+      .reduce((s, c) => s + c.offer.estimatedValue, 0);
+    return fromPosted + fromClaimed;
+  };
+  const currentQuarterValue = valueInRange(quarterStart, addMonths(quarterStart, 3));
+  const lastQuarterValue = valueInRange(lastQuarterStart, quarterStart);
+  const valueDeltaQuarter = currentQuarterValue - lastQuarterValue;
+
+  const deptClaimsCount = await prisma.claim.count({
+    where: { claimingUserId: { in: deptUserIds } },
+  });
+  const deptClaimers = await prisma.claim.findMany({
+    where: { claimingUserId: { in: deptUserIds } },
+    distinct: ["claimingUserId"],
+    select: { claimingUserId: true },
+  });
+  const claimedMultiplier =
+    myClaims.length === 0 || deptClaimers.length === 0
+      ? null
+      : myClaims.length /
+        Math.max(1, deptClaimsCount / deptClaimers.length);
+
+  const months = buildMonthlyBuckets(now, myOffers, myClaims);
+
+  const categoriesMap = new Map<string, number>();
+  for (const o of myOffers) {
+    if (o.status !== "CLAIMED" && o.status !== "COMPLETED") continue;
+    categoriesMap.set(
+      o.category,
+      (categoriesMap.get(o.category) ?? 0) + o.estimatedValue,
+    );
+  }
+  for (const c of myClaims) {
+    categoriesMap.set(
+      c.offer.category,
+      (categoriesMap.get(c.offer.category) ?? 0) + c.offer.estimatedValue,
+    );
+  }
+  const categoriesTotal = Array.from(categoriesMap.values()).reduce(
+    (s, v) => s + v,
+    0,
   );
+  const categories: Category[] = Array.from(categoriesMap.entries())
+    .map(([id, amt]) => ({
+      name: getCategory(id).label,
+      amt,
+      pct: categoriesTotal === 0 ? 0 : Math.round((amt / categoriesTotal) * 100),
+    }))
+    .sort((a, b) => b.amt - a.amt)
+    .slice(0, 6);
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Impact dashboard</h1>
+  const badges: Badge[] = buildBadges(myOffers, myClaims, valueRehomed);
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="Items offered" value={totalOffered.toString()} />
-        <Stat
-          label="Items claimed"
-          value={`${totalClaimed} (${claimRate}%)`}
-        />
-        <Stat label="Items scrapped" value={totalScrapped.toString()} />
-        <Stat
-          label="Value saved"
-          value={`$${valueSaved.toLocaleString()}`}
-        />
-      </div>
+  const timeline: ActivityItem[] = buildTimeline(myOffers, myClaims);
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <RankedList
-          title="Top departments (claiming)"
-          rows={Object.entries(claimsByDept).sort((a, b) => b[1] - a[1])}
-        />
-        <RankedList
-          title="Top departments (offering)"
-          rows={Object.entries(offersByDept).sort((a, b) => b[1] - a[1])}
-        />
-      </div>
-    </div>
-  );
+  const rank = await computeRank(user.id, user.department, quarterStart, now);
+
+  const data: MyImpactData = {
+    valueRehomed,
+    valueDeltaQuarter,
+    postedCount: myOffers.length,
+    postedAvailable,
+    postedClaimed,
+    postedCompleted,
+    postedExpired,
+    claimedCount: myClaims.length,
+    claimedMultiplier,
+    kgDiverted: Math.round(valueRehomed * KG_PER_DOLLAR),
+    rank: rank.position,
+    rankTotal: rank.total,
+    department: user.department,
+    months,
+    categories,
+    badges,
+    timeline,
+  };
+
+  return <MyImpactClient data={data} />;
 }
 
-function countBy(items: string[]): Record<string, number> {
-  return items.reduce<Record<string, number>>((acc, k) => {
-    acc[k] = (acc[k] ?? 0) + 1;
-    return acc;
-  }, {});
+function startOfQuarter(d: Date): Date {
+  const q = Math.floor(d.getMonth() / 3);
+  return new Date(d.getFullYear(), q * 3, 1);
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
-    </div>
-  );
+function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
 }
 
-function RankedList({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: [string, number][];
-}) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-2 font-semibold">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="text-sm text-gray-400">No data yet.</p>
-      ) : (
-        <ol className="space-y-1 text-sm">
-          {rows.map(([dept, count], i) => (
-            <li key={dept} className="flex justify-between">
-              <span>
-                <span className="text-gray-400">{i + 1}.</span> {dept}
-              </span>
-              <span className="font-medium">{count}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
+function buildMonthlyBuckets(
+  now: Date,
+  offers: { createdAt: Date }[],
+  claims: { createdAt: Date }[],
+): MonthBucket[] {
+  const MONTH_LABELS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const buckets: MonthBucket[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    buckets.push({
+      label: MONTH_LABELS[d.getMonth()],
+      posted: 0,
+      claimed: 0,
+    });
+  }
+  const startMs = new Date(
+    now.getFullYear(),
+    now.getMonth() - 11,
+    1,
+  ).getTime();
+  const indexFor = (date: Date) => {
+    if (date.getTime() < startMs) return -1;
+    return (
+      (date.getFullYear() - new Date(startMs).getFullYear()) * 12 +
+      (date.getMonth() - new Date(startMs).getMonth())
+    );
+  };
+  for (const o of offers) {
+    const idx = indexFor(o.createdAt);
+    if (idx >= 0 && idx < buckets.length) buckets[idx].posted += 1;
+  }
+  for (const c of claims) {
+    const idx = indexFor(c.createdAt);
+    if (idx >= 0 && idx < buckets.length) buckets[idx].claimed += 1;
+  }
+  return buckets;
+}
+
+function buildBadges(
+  offers: { createdAt: Date }[],
+  claims: { createdAt: Date }[],
+  valueRehomed: number,
+): Badge[] {
+  const badgeDate = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+
+  const firstClaim = [...claims].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  )[0];
+  const sortedOffers = [...offers].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   );
+  const fifthOffer = sortedOffers[4];
+
+  return [
+    {
+      key: "first-rescue",
+      name: "First Rescue",
+      desc: "Claim your first item",
+      icon: "star",
+      earned: claims.length >= 1,
+      earnedLabel: firstClaim ? badgeDate(firstClaim.createdAt) : undefined,
+    },
+    {
+      key: "generous-giver",
+      name: "Generous Giver",
+      desc: "Post 5+ items",
+      icon: "volunteer_activism",
+      earned: offers.length >= 5,
+      earnedLabel: fifthOffer ? badgeDate(fifthOffer.createdAt) : undefined,
+    },
+    {
+      key: "sustainability-champ",
+      name: "Sustainability Champ",
+      desc: "Divert $10k from salvage",
+      icon: "park",
+      earned: valueRehomed >= 10000,
+    },
+    {
+      key: "century-club",
+      name: "Century Club",
+      desc: "Divert $100k (locked)",
+      icon: "emoji_events",
+      earned: valueRehomed >= 100000,
+    },
+  ];
+}
+
+function buildTimeline(
+  offers: {
+    itemName: string;
+    location: string;
+    estimatedValue: number;
+    createdAt: Date;
+    status: string;
+  }[],
+  claims: {
+    createdAt: Date;
+    offer: { itemName: string; location: string; estimatedValue: number };
+  }[],
+): ActivityItem[] {
+  type Entry = ActivityItem & { ts: number };
+  const entries: Entry[] = [];
+  for (const o of offers) {
+    entries.push({
+      type: "post",
+      title: `You posted ${o.itemName}`,
+      from: o.location,
+      val: `$${o.estimatedValue.toLocaleString()} listed`,
+      when: formatRelative(o.createdAt),
+      ts: o.createdAt.getTime(),
+    });
+  }
+  for (const c of claims) {
+    entries.push({
+      type: "claim",
+      title: `You claimed ${c.offer.itemName}`,
+      from: c.offer.location,
+      val: `+$${c.offer.estimatedValue.toLocaleString()}`,
+      when: formatRelative(c.createdAt),
+      ts: c.createdAt.getTime(),
+    });
+  }
+  return entries
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 5)
+    .map(({ ts: _ts, ...rest }) => rest);
+}
+
+async function computeRank(
+  userId: string,
+  department: string,
+  quarterStart: Date,
+  now: Date,
+): Promise<{ position: number | null; total: number }> {
+  const users = await prisma.user.findMany({
+    where: { department },
+    select: { id: true },
+  });
+  const userIds = users.map((u) => u.id);
+  if (userIds.length === 0) return { position: null, total: 0 };
+
+  const [postedThisQuarter, claimsThisQuarter] = await Promise.all([
+    prisma.offer.findMany({
+      where: {
+        offeringUserId: { in: userIds },
+        status: { in: ["CLAIMED", "COMPLETED"] },
+        updatedAt: { gte: quarterStart, lte: now },
+      },
+      select: { offeringUserId: true, estimatedValue: true },
+    }),
+    prisma.claim.findMany({
+      where: {
+        claimingUserId: { in: userIds },
+        createdAt: { gte: quarterStart, lte: now },
+      },
+      select: { claimingUserId: true, offer: { select: { estimatedValue: true } } },
+    }),
+  ]);
+
+  const totals = new Map<string, number>();
+  for (const id of userIds) totals.set(id, 0);
+  for (const o of postedThisQuarter) {
+    totals.set(
+      o.offeringUserId,
+      (totals.get(o.offeringUserId) ?? 0) + o.estimatedValue,
+    );
+  }
+  for (const c of claimsThisQuarter) {
+    totals.set(
+      c.claimingUserId,
+      (totals.get(c.claimingUserId) ?? 0) + c.offer.estimatedValue,
+    );
+  }
+
+  const ranked = Array.from(totals.entries())
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const position = ranked.findIndex(([id]) => id === userId);
+  if (position < 0) return { position: null, total: userIds.length };
+  return { position: position + 1, total: userIds.length };
 }
