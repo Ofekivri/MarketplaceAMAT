@@ -96,7 +96,7 @@ export default async function NewOfferPage() {
               </Field>
 
               <Field
-                label="Estimated value (NIS)"
+                label="Estimated value (USD)"
                 htmlFor="estimatedValue"
                 hint="Optional, drives the analytics dashboard."
               >

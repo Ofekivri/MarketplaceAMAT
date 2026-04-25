@@ -41,7 +41,7 @@ export default async function LoginPage() {
         </select>
         <button
           type="submit"
-          className="w-full rounded bg-amat-blue px-4 py-2 font-medium text-white hover:bg-amat-blue/90"
+          className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90"
         >
           Continue
         </button>

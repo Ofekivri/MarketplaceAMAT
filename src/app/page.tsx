@@ -4,6 +4,7 @@ import { formatCondition, daysUntil } from "@/lib/format";
 import { CATEGORIES, getCategory, isValidCategory } from "@/lib/categories";
 import { createSearchSubscriptionAction } from "@/lib/actions";
 import Link from "next/link";
+import Image from "next/image";
 import type { Prisma } from "@prisma/client";
 
 function buildHref(
@@ -361,10 +362,11 @@ export default async function DashboardPage({
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       {o.images[0] ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
+                        <Image
                           src={o.images[0]}
                           alt=""
+                          width={64}
+                          height={64}
                           className="h-16 w-16 shrink-0 rounded-xl object-cover"
                         />
                       ) : (
@@ -409,7 +411,7 @@ export default async function DashboardPage({
                     </div>
                     <div className="text-right text-xs text-gray-500">
                       {o.estimatedValue > 0
-                        ? `₪${o.estimatedValue.toLocaleString()}`
+                        ? `$${o.estimatedValue.toLocaleString()}`
                         : "—"}
                     </div>
                     <div className="mt-2 md:mt-0 md:justify-self-end">
@@ -447,11 +449,12 @@ export default async function DashboardPage({
                     </div>
                   )}
                   {o.images[0] ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
+                    <Image
                       src={o.images[0]}
                       alt={o.itemName}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-primary/40 transition-transform duration-500 group-hover:scale-105">
@@ -483,7 +486,7 @@ export default async function DashboardPage({
                     )}
                     {o.estimatedValue > 0 && (
                       <p className="mt-1 text-xs text-gray-500">
-                        Estimated Value: ₪{o.estimatedValue.toLocaleString()}
+                        Estimated Value: ${o.estimatedValue.toLocaleString()}
                       </p>
                     )}
                   </div>
