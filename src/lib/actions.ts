@@ -6,6 +6,7 @@ import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify } from "./notify";
 import { isValidCategory, isValidSubCategory } from "./categories";
+import { matchesQuery } from "./searchMatch";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -114,13 +115,11 @@ export async function createOfferAction(formData: FormData) {
     });
   }
 
-  const haystack = `${itemName} ${description} ${location}`.toLowerCase();
+  const haystack = `${itemName} ${description} ${location}`;
   const subs = await prisma.searchSubscription.findMany({
     where: { userId: { not: user.id } },
   });
-  const matches = subs.filter((s) =>
-    haystack.includes(s.query.toLowerCase()),
-  );
+  const matches = subs.filter((s) => matchesQuery(haystack, s.query));
   if (matches.length > 0) {
     await prisma.searchSubscriptionMatch.createMany({
       data: matches.map((s) => ({
