@@ -60,7 +60,11 @@ export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
   return (
     <aside className="z-50 hidden h-screen w-64 flex-col border-r-0 bg-[#ededf9] text-sm font-medium tracking-wide md:flex">
       <div className="flex h-full flex-col gap-2 px-8 py-8">
-        <div className="mb-8">
+        <Link
+          href="/"
+          aria-label="Go to dashboard"
+          className="mb-8 block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#ededf9]"
+        >
           <div className="mb-1 flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
               <span
@@ -77,7 +81,7 @@ export function Sidebar({ watchlistCount = 0 }: { watchlistCount?: number }) {
           <p className="text-xs font-normal text-on-surface-variant opacity-70">
             Industrial Curator
           </p>
-        </div>
+        </Link>
 
         <nav className="flex flex-col gap-1">
           {primary.map((item, i) => {

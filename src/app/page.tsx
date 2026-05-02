@@ -486,7 +486,7 @@ export default async function DashboardPage({
                 key={o.id}
                 href={`/offers/${o.id}`}
                 aria-label={`View and claim ${o.itemName}`}
-                className="group block overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="group flex h-full flex-col overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div className="relative h-48 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
                   {overdue && (
@@ -520,7 +520,7 @@ export default async function DashboardPage({
                     {getCategory(o.category).label}
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="flex flex-1 flex-col p-6">
                   <div className="mb-2 min-w-0">
                     <h3 className="text-lg font-bold text-on-surface">
                       {o.itemName}
@@ -537,7 +537,7 @@ export default async function DashboardPage({
                     )}
                   </div>
                   <div className="mb-6 flex flex-wrap gap-y-2">
-                    <div className="flex w-1/2 items-center gap-2">
+                    <div className="flex w-full items-center gap-2">
                       <span className="material-symbols-outlined text-xs text-outline">
                         domain
                       </span>
@@ -545,7 +545,7 @@ export default async function DashboardPage({
                         {o.offeringUser.department}
                       </span>
                     </div>
-                    <div className="flex w-1/2 items-center gap-2">
+                    <div className="flex w-full items-center gap-2">
                       <span className="material-symbols-outlined text-xs text-outline">
                         location_on
                       </span>
@@ -576,7 +576,7 @@ export default async function DashboardPage({
                   <span
                     role="button"
                     aria-hidden="true"
-                    className="block w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white"
+                    className="mt-auto block w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white"
                   >
                     Claim Asset
                   </span>
