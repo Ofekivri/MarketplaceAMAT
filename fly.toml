@@ -1,0 +1,27 @@
+# Fly.io config. Generated for marketplaceamat.
+# Use: `fly launch --copy-config --no-deploy` to create the app, then
+# `fly secrets set DATABASE_URL=... BLOB_READ_WRITE_TOKEN=... CRON_SECRET=...`
+# and finally `fly deploy`.
+
+app = "marketplaceamat"
+primary_region = "fra"
+
+[build]
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

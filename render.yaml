@@ -1,0 +1,32 @@
+# Render Blueprint - one-click deploy spec.
+# Use via Render dashboard -> New -> Blueprint -> point at this repo.
+services:
+  - type: web
+    name: marketplaceamat
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: BLOB_READ_WRITE_TOKEN
+        sync: false
+      - key: SEED_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  - type: cron
+    name: check-overdue
+    runtime: node
+    schedule: "0 9 * * *"
+    buildCommand: "echo 'no build needed'"
+    startCommand: 'curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/check-overdue"'
+    envVars:
+      - key: APP_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false
