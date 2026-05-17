@@ -31,7 +31,11 @@ export default async function EditOfferPage({
     where: { id },
     include: {
       offeringUser: true,
-      claim: { include: { claimingUser: true } },
+      claims: {
+        where: { status: { notIn: ["CANCELLED", "COMPLETED"] } },
+        include: { claimingUser: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!offer) notFound();
@@ -39,10 +43,8 @@ export default async function EditOfferPage({
 
   const scrapDateInput = offer.scrapDate.toISOString().slice(0, 10);
   const readOnly = offer.status === "SCRAPPED" || offer.status === "COMPLETED";
-  const claimActive =
-    offer.claim &&
-    offer.claim.status !== "CANCELLED" &&
-    offer.claim.status !== "COMPLETED";
+  const activeClaim = offer.claims[0] ?? null;
+  const claimActive = !!activeClaim;
 
   return (
     <div className="space-y-8">
@@ -215,22 +217,25 @@ export default async function EditOfferPage({
         </div>
       </form>
 
-      {offer.claim && claimActive && (
+      {activeClaim && claimActive && (
         <Card>
-          <CardHeader icon="assignment_ind" title="Current Claim" />
+          <CardHeader icon="assignment_ind" title={`Queue (${offer.claims.length} ${offer.claims.length === 1 ? "person" : "people"})`} />
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <Detail
-              term="Claimed by"
-              value={`${offer.claim.claimingUser.name} (${offer.claim.claimingUser.department})`}
+              term="First in queue"
+              value={`${activeClaim.claimingUser.name} (${activeClaim.claimingUser.department})`}
             />
-            <Detail term="Contact" value={offer.claim.claimingUser.email} />
-            <Detail term="Status" value={offer.claim.status} />
+            <Detail term="Contact" value={activeClaim.claimingUser.email} />
+            <Detail term="Status" value={activeClaim.status} />
             <Detail
-              term="Claimed"
-              value={formatRelative(offer.claim.createdAt)}
+              term="Requested"
+              value={formatRelative(activeClaim.createdAt)}
             />
-            {offer.claim.notes && (
-              <Detail term="Notes" value={offer.claim.notes} />
+            {activeClaim.notes && (
+              <Detail term="Notes" value={activeClaim.notes} />
+            )}
+            {offer.claims.length > 1 && (
+              <Detail term="Others in queue" value={String(offer.claims.length - 1)} />
             )}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">

@@ -195,7 +195,7 @@ export async function updateOfferAction(formData: FormData) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { claim: { include: { claimingUser: true } } },
+    include: { claims: { where: { status: { notIn: ["CANCELLED", "COMPLETED"] } } } },
   });
   if (!offer) throw new Error("Offer not found");
   if (offer.offeringUserId !== user.id) {
@@ -242,11 +242,11 @@ export async function updateOfferAction(formData: FormData) {
     },
   });
 
-  if (offer.claim && offer.claim.status !== "CANCELLED") {
+  for (const c of offer.claims) {
     await notify({
-      userId: offer.claim.claimingUserId,
+      userId: c.claimingUserId,
       title: `Offer updated: ${itemName}`,
-      body: `${user.department} updated details for an item you claimed.`,
+      body: `${user.department} updated details for an item you requested.`,
       link: `/offers/${offerId}`,
     });
   }
@@ -264,7 +264,7 @@ export async function markOfferScrappedAction(formData: FormData) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { claim: true },
+    include: { claims: { where: { status: { notIn: ["CANCELLED", "COMPLETED"] } } } },
   });
   if (!offer) throw new Error("Offer not found");
   if (offer.offeringUserId !== user.id) {
@@ -272,27 +272,22 @@ export async function markOfferScrappedAction(formData: FormData) {
   }
   if (offer.status === "SCRAPPED") return;
 
-  const ops = [
+  await prisma.$transaction([
     prisma.offer.update({
       where: { id: offerId },
       data: { status: "SCRAPPED", scrappedAt: new Date() },
     }),
-  ];
-  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
-    ops.push(
-      prisma.claim.update({
-        where: { id: offer.claim.id },
-        data: { status: "CANCELLED" },
-      }) as never,
-    );
-  }
-  await prisma.$transaction(ops);
+    prisma.claim.updateMany({
+      where: { offerId, status: { notIn: ["CANCELLED", "COMPLETED"] } },
+      data: { status: "CANCELLED" },
+    }),
+  ]);
 
-  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
+  for (const c of offer.claims) {
     await notify({
-      userId: offer.claim.claimingUserId,
+      userId: c.claimingUserId,
       title: `Offer scrapped: ${offer.itemName}`,
-      body: `${user.department} marked this item as scrapped. Your claim was cancelled.`,
+      body: `${user.department} marked this item as scrapped. Your request was cancelled.`,
       link: `/offers/${offerId}`,
     });
   }
@@ -359,26 +354,23 @@ export async function deleteOfferAction(formData: FormData) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { claim: true },
+    include: { claims: { where: { status: { notIn: ["CANCELLED", "COMPLETED"] } } } },
   });
   if (!offer) throw new Error("Offer not found");
   if (offer.offeringUserId !== user.id) {
     throw new Error("Only the owner can delete this offer");
   }
 
-  const claimerId =
-    offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED"
-      ? offer.claim.claimingUserId
-      : null;
+  const activeClaims = offer.claims;
 
   await prisma.$transaction([
-    ...(offer.claim ? [prisma.claim.delete({ where: { id: offer.claim.id } })] : []),
+    prisma.claim.deleteMany({ where: { offerId } }),
     prisma.offer.delete({ where: { id: offerId } }),
   ]);
 
-  if (claimerId) {
+  for (const c of activeClaims) {
     await notify({
-      userId: claimerId,
+      userId: c.claimingUserId,
       title: `Offer removed: ${offer.itemName}`,
       body: `${user.department} deleted this item. It's no longer available.`,
     });
@@ -485,43 +477,39 @@ export async function claimOfferAction(formData: FormData) {
   if (offer.offeringUserId === user.id) {
     throw new Error("You cannot claim your own offer");
   }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const { count } = await tx.offer.updateMany({
-        where: { id: offerId, status: "AVAILABLE" },
-        data: { status: "CLAIMED" },
-      });
-      if (count === 0) {
-        throw new Error("Offer is not available");
-      }
-      await tx.claim.create({
-        data: {
-          offerId,
-          claimingUserId: user.id,
-          notes,
-          status: "PENDING",
-        },
-      });
-    });
-  } catch (err) {
-    const code = (err as { code?: string })?.code;
-    if (code === "P2002") {
-      throw new Error("Offer is not available");
-    }
-    throw err;
+  if (offer.status !== "AVAILABLE" && offer.status !== "CLAIMED") {
+    throw new Error("Offer is not available for claiming");
   }
 
+  const existingClaim = await prisma.claim.findFirst({
+    where: { offerId, claimingUserId: user.id, status: { not: "CANCELLED" } },
+  });
+  if (existingClaim) throw new Error("You already have a request for this offer");
+
+  const queueCount = await prisma.claim.count({
+    where: { offerId, status: { not: "CANCELLED" } },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    if (offer.status === "AVAILABLE") {
+      await tx.offer.update({ where: { id: offerId }, data: { status: "CLAIMED" } });
+    }
+    await tx.claim.create({
+      data: { offerId, claimingUserId: user.id, notes, status: "PENDING" },
+    });
+  });
+
+  const position = queueCount + 1;
   await notify({
     userId: offer.offeringUserId,
-    title: `${user.department} claimed your ${offer.itemName}`,
-    body: `Contact ${user.name} (${user.email}) to coordinate pickup at ${offer.location}.`,
+    title: `${user.department} requested your ${offer.itemName}`,
+    body: `${user.name} joined the queue (position #${position}). Pickup at ${offer.location}.`,
     link: `/offers/${offer.id}`,
   });
   await notify({
     userId: user.id,
-    title: `You claimed ${offer.itemName}`,
-    body: `From ${offer.offeringUser.department}. Pickup at ${offer.location}.`,
+    title: `You requested ${offer.itemName}`,
+    body: `From ${offer.offeringUser.department}. You are #${position} in queue. Pickup at ${offer.location}.`,
     link: `/offers/${offer.id}`,
   });
 
@@ -537,31 +525,37 @@ export async function cancelClaimAction(formData: FormData) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { claim: true, offeringUser: true },
+    include: { offeringUser: true },
   });
-  if (!offer || !offer.claim) throw new Error("Offer or claim not found");
-  if (offer.claim.claimingUserId !== user.id) {
-    throw new Error("Only the claimer can cancel their claim");
-  }
-  if (offer.claim.status === "COMPLETED") {
-    throw new Error("Cannot cancel a completed claim");
+  if (!offer) throw new Error("Offer not found");
+
+  const claim = await prisma.claim.findFirst({
+    where: { offerId, claimingUserId: user.id, status: { not: "CANCELLED" } },
+  });
+  if (!claim) throw new Error("No active request found for this offer");
+  if (claim.status === "COMPLETED") {
+    throw new Error("Cannot cancel a completed claim — use undo instead");
   }
 
-  await prisma.$transaction([
-    prisma.claim.update({
-      where: { id: offer.claim.id },
-      data: { status: "CANCELLED" },
-    }),
-    prisma.offer.update({
-      where: { id: offerId },
-      data: { status: "AVAILABLE" },
-    }),
-  ]);
+  await prisma.claim.update({
+    where: { id: claim.id },
+    data: { status: "CANCELLED" },
+  });
 
+  const remaining = await prisma.claim.count({
+    where: { offerId, status: { not: "CANCELLED" } },
+  });
+  if (remaining === 0) {
+    await prisma.offer.update({ where: { id: offerId }, data: { status: "AVAILABLE" } });
+  }
+
+  const msg = remaining === 0
+    ? "Item is back on the marketplace."
+    : `${remaining} other ${remaining === 1 ? "person" : "people"} still in queue.`;
   await notify({
     userId: offer.offeringUserId,
-    title: `Claim cancelled: ${offer.itemName}`,
-    body: `${user.department} cancelled their claim. Item is back on the marketplace.`,
+    title: `Request cancelled: ${offer.itemName}`,
+    body: `${user.department} cancelled their request. ${msg}`,
     link: `/offers/${offer.id}`,
   });
 
@@ -577,17 +571,30 @@ export async function completeClaimAction(formData: FormData) {
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { claim: true },
+    include: {
+      claims: {
+        where: { status: { not: "CANCELLED" } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
-  if (!offer || !offer.claim) throw new Error("Offer or claim not found");
-  if (offer.claim.claimingUserId !== user.id && offer.offeringUserId !== user.id) {
-    throw new Error("Only the offering or claiming user can complete pickup");
-  }
+  if (!offer) throw new Error("Offer not found");
+
+  const isOwner = offer.offeringUserId === user.id;
+  const userClaim = offer.claims.find((c) => c.claimingUserId === user.id);
+  if (!userClaim && !isOwner) throw new Error("Only a requester or the offer owner can complete pickup");
+
+  const claimToComplete = userClaim ?? offer.claims[0];
+  if (!claimToComplete) throw new Error("No active requests for this offer");
 
   await prisma.$transaction([
     prisma.claim.update({
-      where: { id: offer.claim.id },
+      where: { id: claimToComplete.id },
       data: { status: "COMPLETED", completedAt: new Date() },
+    }),
+    prisma.claim.updateMany({
+      where: { offerId, id: { not: claimToComplete.id }, status: { not: "CANCELLED" } },
+      data: { status: "CANCELLED" },
     }),
     prisma.offer.update({
       where: { id: offerId },
@@ -595,15 +602,25 @@ export async function completeClaimAction(formData: FormData) {
     }),
   ]);
 
+  for (const c of offer.claims) {
+    if (c.id === claimToComplete.id) continue;
+    await notify({
+      userId: c.claimingUserId,
+      title: `Item taken: ${offer.itemName}`,
+      body: `Another person picked up this item. Your request has been cancelled.`,
+      link: `/offers/${offerId}`,
+    });
+  }
+
   await notify({
     userId: offer.offeringUserId,
     title: `Pickup complete: ${offer.itemName}`,
     body: `Marked as picked up. Item saved from scrap.`,
     link: `/offers/${offer.id}`,
   });
-  if (offer.offeringUserId !== offer.claim.claimingUserId) {
+  if (offer.offeringUserId !== claimToComplete.claimingUserId) {
     await notify({
-      userId: offer.claim.claimingUserId,
+      userId: claimToComplete.claimingUserId,
       title: `Pickup complete: ${offer.itemName}`,
       body: `Marked as picked up. Thanks for redeploying!`,
       link: `/offers/${offer.id}`,
@@ -614,6 +631,50 @@ export async function completeClaimAction(formData: FormData) {
   revalidatePath("/claims");
   revalidatePath(`/offers/${offerId}`);
   redirect(`/offers/${offerId}?completed=1`);
+}
+
+export async function undoCompleteClaimAction(formData: FormData) {
+  const user = await requireUser();
+  const claimId = String(formData.get("claimId") ?? "");
+  if (!claimId) throw new Error("Missing claim id");
+
+  const claim = await prisma.claim.findUnique({
+    where: { id: claimId },
+    include: { offer: { include: { offeringUser: true } } },
+  });
+  if (!claim) throw new Error("Claim not found");
+  if (claim.claimingUserId !== user.id) throw new Error("Not your claim");
+  if (claim.status !== "COMPLETED") throw new Error("Claim is not completed");
+
+  const completedAt = claim.completedAt ?? claim.updatedAt;
+  const hoursSince = (Date.now() - completedAt.getTime()) / (1000 * 60 * 60);
+  if (hoursSince > 24) throw new Error("Undo window has passed (24 hours)");
+
+  const otherActive = await prisma.claim.count({
+    where: { offerId: claim.offerId, id: { not: claimId }, status: { not: "CANCELLED" } },
+  });
+
+  await prisma.$transaction([
+    prisma.claim.update({
+      where: { id: claimId },
+      data: { status: "CANCELLED", completedAt: null },
+    }),
+    prisma.offer.update({
+      where: { id: claim.offerId },
+      data: { status: otherActive > 0 ? "CLAIMED" : "AVAILABLE" },
+    }),
+  ]);
+
+  await notify({
+    userId: claim.offer.offeringUserId,
+    title: `Pickup undone: ${claim.offer.itemName}`,
+    body: `${user.department} reversed their "I took it" — item is back ${otherActive > 0 ? "in queue" : "on the marketplace"}.`,
+    link: `/offers/${claim.offerId}`,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/claims");
+  revalidatePath(`/offers/${claim.offerId}`);
 }
 
 export async function markNotificationReadAction(formData: FormData) {

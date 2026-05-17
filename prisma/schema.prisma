@@ -35,7 +35,7 @@ model Offer {
   estimatedValue  Int      @default(0) // in NIS, used for analytics
   status          String   @default("AVAILABLE") // AVAILABLE | CLAIMED | COMPLETED | SCRAPPED
   images          String[] @default([]) // data URLs
-  claim           Claim?
+  claims          Claim[]
   subscriptionMatches SearchSubscriptionMatch[]
   createdAt       DateTime @default(now())
   scrappedAt      DateTime?
@@ -48,7 +48,7 @@ model Offer {
 
 model Claim {
   id              String   @id @default(cuid())
-  offerId         String   @unique
+  offerId         String
   offer           Offer    @relation(fields: [offerId], references: [id])
   claimingUserId  String
   claimingUser    User     @relation("ClaimingUser", fields: [claimingUserId], references: [id])
@@ -57,6 +57,9 @@ model Claim {
   createdAt       DateTime @default(now())
   completedAt     DateTime?
   updatedAt       DateTime @updatedAt
+
+  @@index([offerId, status])
+  @@index([claimingUserId])
 }
 
 model Notification {

@@ -63,7 +63,13 @@ export default async function MyOffersPage({
 
   const offers = await prisma.offer.findMany({
     where: { offeringUserId: user.id },
-    include: { claim: { include: { claimingUser: true } } },
+    include: {
+      claims: {
+        where: { status: { not: "CANCELLED" } },
+        include: { claimingUser: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -282,10 +288,14 @@ export default async function MyOffersPage({
                               wide
                               highlight={urgent}
                             />
-                            {o.claim && o.status === "CLAIMED" && (
+                            {o.claims.length > 0 && o.status === "CLAIMED" && (
                               <Meta
                                 icon="assignment_ind"
-                                text={`Claimed by ${o.claim.claimingUser.name}`}
+                                text={
+                                  o.claims.length === 1
+                                    ? `Requested by ${o.claims[0].claimingUser.name}`
+                                    : `${o.claims.length} in queue · First: ${o.claims[0].claimingUser.name}`
+                                }
                                 wide
                               />
                             )}

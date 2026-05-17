@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import {
   cancelClaimAction,
   completeClaimAction,
+  undoCompleteClaimAction,
 } from "@/lib/actions";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
@@ -147,37 +148,55 @@ export default async function ClaimsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container">
-                {collected.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="transition-colors hover:bg-surface-container-low"
-                  >
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/offers/${c.offerId}`}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="material-symbols-outlined text-tertiary">
-                          check_circle
-                        </span>
-                        <span className="font-semibold text-on-surface">
-                          {c.offer.itemName}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {c.offer.offeringUser.department}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {formatDate(c.updatedAt)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="rounded bg-primary-fixed px-2 py-1 font-mono text-xs font-bold text-primary">
-                        {refNumber(c.id)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {collected.map((c) => {
+                  const completedAt = c.completedAt ?? c.updatedAt;
+                  const hoursSince = (Date.now() - completedAt.getTime()) / (1000 * 60 * 60);
+                  const canUndo = hoursSince <= 24;
+                  return (
+                    <tr
+                      key={c.id}
+                      className="transition-colors hover:bg-surface-container-low"
+                    >
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/offers/${c.offerId}`}
+                          className="flex items-center gap-3"
+                        >
+                          <span className="material-symbols-outlined text-tertiary">
+                            check_circle
+                          </span>
+                          <span className="font-semibold text-on-surface">
+                            {c.offer.itemName}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {c.offer.offeringUser.department}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-on-surface-variant">
+                        {formatDate(completedAt)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded bg-primary-fixed px-2 py-1 font-mono text-xs font-bold text-primary">
+                            {refNumber(c.id)}
+                          </span>
+                          {canUndo && (
+                            <form action={undoCompleteClaimAction}>
+                              <input type="hidden" name="claimId" value={c.id} />
+                              <button
+                                type="submit"
+                                className="text-[10px] text-gray-400 hover:text-error hover:underline"
+                              >
+                                Undo
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -123,7 +123,7 @@ export default async function DashboardPage({
 
   const matchingCount = await prisma.offer.count({
     where: {
-      status: "AVAILABLE",
+      status: { in: ["AVAILABLE", "CLAIMED"] },
       offeringUserId: { not: user.id },
       AND: filters,
     },
@@ -143,11 +143,14 @@ export default async function DashboardPage({
   ] = await Promise.all([
     prisma.offer.findMany({
       where: {
-        status: "AVAILABLE",
+        status: { in: ["AVAILABLE", "CLAIMED"] },
         offeringUserId: { not: user.id },
         AND: filters,
       },
-      include: { offeringUser: true },
+      include: {
+        offeringUser: true,
+        _count: { select: { claims: { where: { status: { not: "CANCELLED" } } } } },
+      },
       orderBy: sortToOrderBy(sort),
       skip,
       take,
@@ -155,7 +158,7 @@ export default async function DashboardPage({
     prisma.offer.groupBy({
       by: ["category"],
       where: {
-        status: "AVAILABLE",
+        status: { in: ["AVAILABLE", "CLAIMED"] },
         offeringUserId: { not: user.id },
       },
       _count: { _all: true },
@@ -400,6 +403,8 @@ export default async function DashboardPage({
               const days = daysUntil(o.scrapDate);
               const urgent = days <= 1;
               const badge = conditionBadge(o.condition);
+              const isClaimed = o.status === "CLAIMED";
+              const queueCount = o._count.claims;
               return (
                 <li key={o.id}>
                   <Link
@@ -423,14 +428,26 @@ export default async function DashboardPage({
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-base font-bold text-on-surface">
-                          {o.itemName}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-base font-bold text-on-surface">
+                            {o.itemName}
+                          </p>
+                          {isClaimed && (
+                            <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                              CLAIMED
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className={`card-cond ${badge.cls}`}>
                             <span className="dot" />
                             {badge.label}
                           </span>
+                          {queueCount > 0 && (
+                            <span className="text-[10px] text-on-surface-variant">
+                              {queueCount} interested
+                            </span>
+                          )}
                           {o.subCategory && (
                             <span className="truncate text-[10px] text-outline">
                               {o.subCategory}
@@ -462,7 +479,7 @@ export default async function DashboardPage({
                     </div>
                     <div className="mt-2 md:mt-0 md:justify-self-end">
                       <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white">
-                        View
+                        {isClaimed ? "Join Queue" : "View"}
                         <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-0.5">
                           arrow_forward
                         </span>
@@ -479,19 +496,26 @@ export default async function DashboardPage({
           {liveOffers.map((o) => {
             const days = daysUntil(o.scrapDate);
             const urgent = days <= 1;
-            const overdue = days <= 0;
+            const overdue = days <= 0 && o.status !== "SCRAPPED";
+            const isClaimed = o.status === "CLAIMED";
+            const queueCount = o._count.claims;
             const badge = conditionBadge(o.condition);
             return (
               <Link
                 key={o.id}
                 href={`/offers/${o.id}`}
-                aria-label={`View and claim ${o.itemName}`}
+                aria-label={`View ${o.itemName}`}
                 className="group flex h-full flex-col overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div className="relative h-48 overflow-hidden bg-gradient-to-br from-surface-container-high to-surface-container">
-                  {overdue && (
+                  {overdue && !isClaimed && (
                     <div className="absolute inset-x-0 top-0 z-10 bg-amber-500/95 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-white shadow-sm backdrop-blur">
                       Overdue
+                    </div>
+                  )}
+                  {isClaimed && (
+                    <div className="absolute inset-x-0 top-0 z-10 bg-blue-600/90 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-white shadow-sm backdrop-blur">
+                      Claimed — pending pickup
                     </div>
                   )}
                   {o.images[0] ? (
@@ -573,12 +597,22 @@ export default async function DashboardPage({
                       </span>
                     </div>
                   </div>
+                  {queueCount > 0 && (
+                    <div className="mb-2 flex items-center gap-1 text-xs text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm">people</span>
+                      <span>{queueCount} {queueCount === 1 ? "person" : "people"} interested</span>
+                    </div>
+                  )}
                   <span
                     role="button"
                     aria-hidden="true"
-                    className="mt-auto block w-full rounded-lg bg-surface-container py-3 text-center font-bold text-primary transition-colors group-hover:bg-primary-container group-hover:text-white"
+                    className={`mt-auto block w-full rounded-lg py-3 text-center font-bold transition-colors ${
+                      isClaimed
+                        ? "bg-surface-container text-on-surface-variant group-hover:bg-blue-100 group-hover:text-blue-700"
+                        : "bg-surface-container text-primary group-hover:bg-primary-container group-hover:text-white"
+                    }`}
                   >
-                    Claim Asset
+                    {isClaimed ? "Join Queue" : "Claim Asset"}
                   </span>
                 </div>
               </Link>

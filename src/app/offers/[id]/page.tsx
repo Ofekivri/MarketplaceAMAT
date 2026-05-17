@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/session";
 import {
   claimOfferAction,
   completeClaimAction,
+  cancelClaimAction,
+  undoCompleteClaimAction,
 } from "@/lib/actions";
 import { getCategory } from "@/lib/categories";
 import { formatCondition, formatDate, daysUntil, formatRelative } from "@/lib/format";
@@ -33,13 +35,20 @@ export default async function OfferDetailPage({
     where: { id },
     include: {
       offeringUser: true,
-      claim: { include: { claimingUser: true } },
+      claims: {
+        where: { status: { not: "CANCELLED" } },
+        include: { claimingUser: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!offer) notFound();
 
+  const activeClaim = offer.claims[0] ?? null;
   const isOwn = offer.offeringUserId === user.id;
-  const isClaimer = offer.claim?.claimingUserId === user.id;
+  const userClaim = offer.claims.find((c) => c.claimingUserId === user.id) ?? null;
+  const isClaimer = !!userClaim;
+  const queuePosition = isClaimer ? offer.claims.findIndex((c) => c.claimingUserId === user.id) : -1;
   const days = daysUntil(offer.scrapDate);
   const category = getCategory(offer.category);
 
@@ -61,7 +70,7 @@ export default async function OfferDetailPage({
         />
       )}
 
-      {isOwn && offer.status === "AVAILABLE" && days <= 0 && (
+      {isOwn && offer.status === "AVAILABLE" && days <= 0 && offer.status !== "SCRAPPED" && (
         <OverdueBanner
           offerId={offer.id}
           scrapDate={offer.scrapDate}
@@ -220,7 +229,7 @@ export default async function OfferDetailPage({
               </div>
             )}
 
-            {offer.status === "AVAILABLE" && !isOwn && (
+            {(offer.status === "AVAILABLE" || offer.status === "CLAIMED") && !isOwn && !isClaimer && (
               <form action={claimOfferAction} className="mt-4 space-y-2">
                 <input type="hidden" name="offerId" value={offer.id} />
                 <textarea
@@ -233,13 +242,56 @@ export default async function OfferDetailPage({
                   type="submit"
                   className="w-full rounded bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
                 >
-                  ✅ Claim this
+                  {offer.status === "CLAIMED" ? "🙋 Join Queue" : "✅ Claim this"}
                 </button>
                 <p className="text-xs text-gray-500">
-                  Both you and {offer.offeringUser.department} will be
-                  notified.
+                  {offer.status === "CLAIMED"
+                    ? `${offer.claims.length} ${offer.claims.length === 1 ? "person" : "people"} ahead of you. You and ${offer.offeringUser.department} will be notified.`
+                    : `Both you and ${offer.offeringUser.department} will be notified.`}
                 </p>
               </form>
+            )}
+
+            {isClaimer && offer.status === "CLAIMED" && !isOwn && (
+              <div className="mt-4 space-y-2">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                  <p className="font-semibold">
+                    You are #{queuePosition + 1} in the queue
+                    {queuePosition === 0 && " — you're next!"}
+                  </p>
+                  {userClaim?.notes && (
+                    <p className="mt-1 text-xs italic">&ldquo;{userClaim.notes}&rdquo;</p>
+                  )}
+                </div>
+                <form action={cancelClaimAction}>
+                  <input type="hidden" name="offerId" value={offer.id} />
+                  <button
+                    type="submit"
+                    className="text-xs text-gray-500 hover:text-error hover:underline"
+                  >
+                    Leave queue
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {isOwn && offer.status === "CLAIMED" && offer.claims.length > 0 && (
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-bold text-blue-900">
+                  {offer.claims.length} {offer.claims.length === 1 ? "person" : "people"} in queue
+                </p>
+                <ol className="mt-2 space-y-1">
+                  {offer.claims.map((c, i) => (
+                    <li key={c.id} className="flex items-center gap-2 text-xs text-blue-800">
+                      <span className="font-bold">#{i + 1}</span>
+                      {c.claimingUser.name} · {c.claimingUser.department}
+                      {i === 0 && (
+                        <span className="rounded bg-blue-200 px-1.5 py-0.5 text-[10px] font-bold">NEXT</span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             )}
 
             {offer.status === "AVAILABLE" && isOwn && (
@@ -251,7 +303,7 @@ export default async function OfferDetailPage({
         </div>
       </div>
 
-      {(offer.claim || offer.status === "SCRAPPED") && (
+      {(activeClaim || offer.status === "SCRAPPED") && (
         <ActivityTimeline
           postedAt={offer.createdAt}
           postedBy={{
@@ -259,16 +311,16 @@ export default async function OfferDetailPage({
             department: offer.offeringUser.department,
           }}
           claim={
-            offer.claim
+            activeClaim
               ? {
-                  createdAt: offer.claim.createdAt,
-                  completedAt: offer.claim.completedAt,
-                  updatedAt: offer.claim.updatedAt,
-                  status: offer.claim.status,
-                  notes: offer.claim.notes,
+                  createdAt: activeClaim.createdAt,
+                  completedAt: activeClaim.completedAt,
+                  updatedAt: activeClaim.updatedAt,
+                  status: activeClaim.status,
+                  notes: activeClaim.notes,
                   claimingUser: {
-                    name: offer.claim.claimingUser.name,
-                    department: offer.claim.claimingUser.department,
+                    name: activeClaim.claimingUser.name,
+                    department: activeClaim.claimingUser.department,
                   },
                 }
               : null
@@ -280,7 +332,7 @@ export default async function OfferDetailPage({
         />
       )}
 
-      {offer.claim && offer.status === "CLAIMED" && (isOwn || isClaimer) && (
+      {activeClaim && offer.status === "CLAIMED" && (isOwn || isClaimer) && (
         <form action={completeClaimAction}>
           <input type="hidden" name="offerId" value={offer.id} />
           <CompleteClaimButton isClaimer={isClaimer} />
@@ -291,6 +343,19 @@ export default async function OfferDetailPage({
           </p>
         </form>
       )}
+
+      {offer.status === "COMPLETED" && userClaim?.status === "COMPLETED" && (() => {
+        const completedAt = userClaim.completedAt ?? userClaim.updatedAt;
+        const hoursSince = (Date.now() - completedAt.getTime()) / (1000 * 60 * 60);
+        return hoursSince <= 24 ? (
+          <form action={undoCompleteClaimAction} className="text-center">
+            <input type="hidden" name="claimId" value={userClaim.id} />
+            <button type="submit" className="text-xs text-gray-400 hover:text-error hover:underline">
+              I didn&apos;t actually take this — undo (available for {Math.max(0, Math.floor(24 - hoursSince))}h)
+            </button>
+          </form>
+        ) : null;
+      })()}
     </div>
   );
 }
