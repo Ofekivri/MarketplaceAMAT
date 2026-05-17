@@ -70,7 +70,7 @@ export default async function OfferDetailPage({
         />
       )}
 
-      {isOwn && offer.status === "AVAILABLE" && days <= 0 && offer.status !== "SCRAPPED" && (
+      {isOwn && offer.status === "AVAILABLE" && days <= 0 && (
         <OverdueBanner
           offerId={offer.id}
           scrapDate={offer.scrapDate}
