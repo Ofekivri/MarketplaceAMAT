@@ -41,6 +41,7 @@ function buildHref(
   category: string | null,
   page: number = 1,
   sort: SortKey = "deadline",
+  hideClaimed: boolean = false,
 ): string {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
@@ -48,6 +49,7 @@ function buildHref(
   if (category) params.set("category", category);
   if (page > 1) params.set("page", String(page));
   if (sort !== "deadline") params.set("sort", sort);
+  if (hideClaimed) params.set("hide", "claimed");
   const s = params.toString();
   return s ? `/?${s}` : "/";
 }
@@ -80,14 +82,16 @@ function conditionBadge(cond: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; view?: string; category?: string; page?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; view?: string; category?: string; page?: string; sort?: string; hide?: string }>;
 }) {
   const user = await getCurrentUser();
-  const { q: rawQ, view: rawView, category: rawCat, page: rawPage, sort: rawSort } = await searchParams;
+  const { q: rawQ, view: rawView, category: rawCat, page: rawPage, sort: rawSort, hide: rawHide } = await searchParams;
   const q = rawQ?.trim() ?? "";
   const view: "grid" | "list" = rawView === "list" ? "list" : "grid";
   const category = rawCat && isValidCategory(rawCat) ? rawCat : null;
   const sort: SortKey = rawSort && isValidSort(rawSort) ? rawSort : "deadline";
+  const hideClaimed = rawHide === "claimed";
+  const statusFilter = hideClaimed ? ["AVAILABLE"] : ["AVAILABLE", "CLAIMED"];
   const take = view === "list" ? 20 : 24;
 
   if (!user) {
@@ -123,7 +127,7 @@ export default async function DashboardPage({
 
   const matchingCount = await prisma.offer.count({
     where: {
-      status: { in: ["AVAILABLE", "CLAIMED"] },
+      status: { in: statusFilter },
       offeringUserId: { not: user.id },
       AND: filters,
     },
@@ -143,7 +147,7 @@ export default async function DashboardPage({
   ] = await Promise.all([
     prisma.offer.findMany({
       where: {
-        status: { in: ["AVAILABLE", "CLAIMED"] },
+        status: { in: statusFilter },
         offeringUserId: { not: user.id },
         AND: filters,
       },
@@ -158,7 +162,7 @@ export default async function DashboardPage({
     prisma.offer.groupBy({
       by: ["category"],
       where: {
-        status: { in: ["AVAILABLE", "CLAIMED"] },
+        status: { in: statusFilter },
         offeringUserId: { not: user.id },
       },
       _count: { _all: true },
@@ -275,7 +279,7 @@ export default async function DashboardPage({
           </form>
           <div className="view-toggle">
             <Link
-              href={buildHref(q, "grid", category, 1, sort)}
+              href={buildHref(q, "grid", category, 1, sort, hideClaimed)}
               aria-label="Grid view"
               className={view === "grid" ? "active" : ""}
             >
@@ -287,7 +291,7 @@ export default async function DashboardPage({
               </svg>
             </Link>
             <Link
-              href={buildHref(q, "list", category, 1, sort)}
+              href={buildHref(q, "list", category, 1, sort, hideClaimed)}
               aria-label="List view"
               className={view === "list" ? "active" : ""}
             >
@@ -307,7 +311,7 @@ export default async function DashboardPage({
       {/* Filters */}
       <div className="filters">
         <Link
-          href={buildHref(q, view, null, 1, sort)}
+          href={buildHref(q, view, null, 1, sort, hideClaimed)}
           className={`chip ${!category ? "active" : ""}`}
         >
           All <span className="count">{totalCount}</span>
@@ -319,7 +323,7 @@ export default async function DashboardPage({
           return (
             <Link
               key={c.id}
-              href={buildHref(q, view, active ? null : c.id, 1, sort)}
+              href={buildHref(q, view, active ? null : c.id, 1, sort, hideClaimed)}
               className={`chip ${active ? "active" : ""}`}
             >
               {c.label} <span className="count">{count}</span>
@@ -334,7 +338,7 @@ export default async function DashboardPage({
             {SORT_OPTIONS.map((opt) => (
               <Link
                 key={opt.key}
-                href={buildHref(q, view, category, 1, opt.key)}
+                href={buildHref(q, view, category, 1, opt.key, hideClaimed)}
                 className={`filter-sort-option ${opt.key === sort ? "active" : ""}`}
               >
                 {opt.label}
@@ -342,6 +346,17 @@ export default async function DashboardPage({
             ))}
           </div>
         </details>
+        <Link
+          href={buildHref(q, view, category, 1, sort, !hideClaimed)}
+          className={`chip ${hideClaimed ? "active" : ""}`}
+          aria-pressed={hideClaimed}
+          title={hideClaimed ? "Showing only items not yet claimed" : "Click to hide already-claimed items"}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: "middle", marginRight: 4 }}>
+            {hideClaimed ? "check_box" : "check_box_outline_blank"}
+          </span>
+          Hide claimed
+        </Link>
       </div>
 
       {/* Results count */}
@@ -628,7 +643,7 @@ export default async function DashboardPage({
         >
           {page > 1 ? (
             <Link
-              href={buildHref(q, view, category, page - 1, sort)}
+              href={buildHref(q, view, category, page - 1, sort, hideClaimed)}
               className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
             >
               <span className="material-symbols-outlined text-sm">chevron_left</span>
@@ -659,7 +674,7 @@ export default async function DashboardPage({
             ) : (
               <Link
                 key={n}
-                href={buildHref(q, view, category, n, sort)}
+                href={buildHref(q, view, category, n, sort, hideClaimed)}
                 className="flex h-9 min-w-9 items-center justify-center rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
               >
                 {n}
@@ -668,7 +683,7 @@ export default async function DashboardPage({
           )}
           {page < totalPages ? (
             <Link
-              href={buildHref(q, view, category, page + 1, sort)}
+              href={buildHref(q, view, category, page + 1, sort, hideClaimed)}
               className="flex h-9 items-center gap-1 rounded-full bg-surface-container px-3 text-xs font-bold text-on-surface hover:bg-surface-container-high"
             >
               Next
