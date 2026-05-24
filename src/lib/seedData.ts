@@ -8,6 +8,12 @@ const daysFromNow = (n: number) => {
   return d;
 };
 
+const daysAgo = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+};
+
 export async function seedDemoData(
   prisma: PrismaClient,
   opts: SeedOptions = {},
@@ -150,5 +156,154 @@ export async function seedDemoData(
     await prisma.offer.create({ data });
   }
 
-  return { skipped: false, users: users.length, offers: offerData.length };
+  // --- Additional demo users ---
+  const frank = await prisma.user.create({
+    data: { email: "frank@amat.example", name: "Frank Katz", department: "Process Engineering", role: "poster" },
+  });
+  const grace = await prisma.user.create({
+    data: { email: "grace@amat.example", name: "Grace Stern", department: "Equipment Engineering", role: "claimer" },
+  });
+
+  // --- Premium AVAILABLE offers (high-visibility for demo) ---
+  const premiumAvailable = [
+    {
+      offeringUserId: frank.id, category: "FOUP", subCategory: "300mm",
+      itemName: "Entegris A300 FOUPs — 25 units",
+      description: "Full lot of 25 Entegris A300 300mm FOUPs from decommissioned tool set. Post-PM particle check passed (<EES spec). Wafer seats unscratched, latch mechanisms functional. Ready to deploy.",
+      quantity: 25, condition: "LIKE_NEW" as const, location: "Fab A, Cleanroom Storage Bay 2",
+      scrapDate: daysFromNow(10), estimatedValue: 55000,
+    },
+    {
+      offeringUserId: frank.id, category: "VACUUM_GAS", subCategory: "Turbo Pump",
+      itemName: "Pfeiffer HiPace 700 Turbo Pumps",
+      description: "Full assembly: pump head + TC 400 electronics drive unit. 3,200 hrs, last serviced by Pfeiffer certified technician. Service log sheet available. Ideal for research or rebuild stock.",
+      quantity: 2, condition: "GOOD" as const, location: "Sub-Fab Module 7, Bay C",
+      scrapDate: daysFromNow(14), estimatedValue: 28000,
+    },
+    {
+      offeringUserId: frank.id, category: "CHAMBER", subCategory: "ESC / Chuck",
+      itemName: "Applied Materials Centura ESC Assembly",
+      description: "Electrostatic Chuck for Centura platform. Ceramic surface crack-free, clamping voltage verified at spec. Removed during planned PM decommission — full service history documented.",
+      quantity: 1, condition: "GOOD" as const, location: "Etch Module Spares Cage, Sub-Fab A",
+      scrapDate: daysFromNow(7), estimatedValue: 34000,
+    },
+    {
+      offeringUserId: grace.id, category: "ELECTRONICS", subCategory: "Test Equipment",
+      itemName: "Keysight DSOX3054T Oscilloscope (4-ch, 500MHz)",
+      description: "Keysight InfiniiVision 3000T-X series. All 4 channels functional, calibration due Q3 2026. Touchscreen pristine. Includes N2142A probes ×4, USB cable, power cord and carry bag.",
+      quantity: 1, condition: "LIKE_NEW" as const, location: "Equipment Engineering Lab, Bldg 6",
+      scrapDate: daysFromNow(18), estimatedValue: 18500,
+    },
+    {
+      offeringUserId: carol.id, category: "VACUUM_GAS", subCategory: "MFC",
+      itemName: "Brooks SLA5800 Mass Flow Controllers — 12 units",
+      description: "Assorted calibrated ranges: 4× 200 sccm N₂, 4× 1000 sccm Ar, 4× 50 sccm O₂. Calibration certs included. Recertification recommended before return to process.",
+      quantity: 12, condition: "GOOD" as const, location: "Gas Panel Spares Cabinet, Fab B",
+      scrapDate: daysFromNow(9), estimatedValue: 24000,
+    },
+  ];
+
+  for (const data of premiumAvailable) {
+    await prisma.offer.create({ data });
+  }
+
+  // --- CLAIMED offers — shows active workflow during demo ---
+  const claimedItems = [
+    {
+      offer: {
+        offeringUserId: dan.id, category: "VACUUM_GAS" as const, subCategory: "Dry Pump",
+        itemName: "Edwards iXL 120 Dry Pump — Refurb Candidate",
+        description: "Recently serviced (1,400 hrs). Removed from NxT 1950i tool upgrade. Full service log, inlet strainer new. Excellent refurb candidate for engineering lab use.",
+        quantity: 1, condition: "GOOD" as const, location: "Sub-Fab Pump Bay 3",
+        scrapDate: daysFromNow(6), estimatedValue: 22000, status: "CLAIMED" as const,
+      },
+      claim: { claimingUserId: grace.id, status: "PICKUP_SCHEDULED" as const, notes: "Pickup scheduled for Tuesday 10:00 AM — R&D Tool Bay 2. Grace will coordinate with Dan." },
+    },
+    {
+      offer: {
+        offeringUserId: frank.id, category: "RETICLE" as const, subCategory: "SMIF Pod (6\")",
+        itemName: "Entegris Reticle SMIF Pods — 12 units",
+        description: "6×6″ pods, post-inspection (passed). Clean inside, no visible contamination. Decommissioned from litho tool upgrade. Immediate reuse ready.",
+        quantity: 12, condition: "LIKE_NEW" as const, location: "Litho Bay Storage, Bldg 4",
+        scrapDate: daysFromNow(4), estimatedValue: 14400, status: "CLAIMED" as const,
+      },
+      claim: { claimingUserId: bob.id, status: "PICKUP_SCHEDULED" as const, notes: "Procurement will coordinate transfer with litho bay coordinator by end of week." },
+    },
+    {
+      offer: {
+        offeringUserId: alice.id, category: "ELECTRONICS" as const, subCategory: "Computer/Laptop",
+        itemName: "HP Z4 G4 Workstations — 4 units",
+        description: "Xeon W-2125, 32GB ECC RAM, 512GB NVMe + 2TB HDD, Quadro P2000. Win 11 Pro. Replaced during fab process simulation cluster upgrade. Full OS + drivers intact.",
+        quantity: 4, condition: "GOOD" as const, location: "IT Server Room B, Rack 3",
+        scrapDate: daysFromNow(8), estimatedValue: 20000, status: "CLAIMED" as const,
+      },
+      claim: { claimingUserId: eve.id, status: "PENDING" as const, notes: "R&D requesting for ML model training nodes — confirming rack space." },
+    },
+  ];
+
+  for (const { offer, claim } of claimedItems) {
+    const created = await prisma.offer.create({ data: offer });
+    await prisma.claim.create({ data: { offerId: created.id, claimingUserId: claim.claimingUserId, status: claim.status, notes: claim.notes } });
+  }
+
+  // --- COMPLETED offers — drives analytics "value saved" number ---
+  const completedItems = [
+    {
+      offer: {
+        offeringUserId: carol.id, category: "FOUP" as const, subCategory: "300mm",
+        itemName: "Entegris A300 FOUPs — 30 units (lot)",
+        description: "Full lot from decommissioned tool set. Particle-checked clean. Wafer seats and latches verified.",
+        quantity: 30, condition: "LIKE_NEW" as const, location: "Fab C, Cleanroom Storage",
+        scrapDate: daysAgo(5), estimatedValue: 54000, status: "COMPLETED" as const,
+      },
+      claim: { claimingUserId: bob.id, status: "COMPLETED" as const, completedAt: daysAgo(10) },
+    },
+    {
+      offer: {
+        offeringUserId: frank.id, category: "VACUUM_GAS" as const, subCategory: "Turbo Pump",
+        itemName: "Pfeiffer HiPace 300 Turbo Pump",
+        description: "1,800 hrs, Pfeiffer PM done. Full electronics module included. Last used on CVD module.",
+        quantity: 1, condition: "GOOD" as const, location: "Sub-Fab Module 3, Storage",
+        scrapDate: daysAgo(8), estimatedValue: 32000, status: "COMPLETED" as const,
+      },
+      claim: { claimingUserId: dan.id, status: "COMPLETED" as const, completedAt: daysAgo(12) },
+    },
+    {
+      offer: {
+        offeringUserId: dan.id, category: "ELECTRONICS" as const, subCategory: "Test Equipment",
+        itemName: "Keysight E8257D Signal Generator (10MHz–67GHz)",
+        description: "Calibrated Q2 2025. Full accessories set. Replaced by newer model in RF lab. All options intact.",
+        quantity: 1, condition: "LIKE_NEW" as const, location: "RF Test Lab, Bldg 8",
+        scrapDate: daysAgo(12), estimatedValue: 52000, status: "COMPLETED" as const,
+      },
+      claim: { claimingUserId: grace.id, status: "COMPLETED" as const, completedAt: daysAgo(15) },
+    },
+    {
+      offer: {
+        offeringUserId: alice.id, category: "CHAMBER" as const, subCategory: "Showerhead",
+        itemName: "CVD Showerhead Assembly — Centura WxZ (3 units)",
+        description: "Anodized aluminum, 1 PM cycle. Full hardware kit included. Decommissioned clean. Ready for spares stock.",
+        quantity: 3, condition: "GOOD" as const, location: "CVD Spares Cage, Sub-Fab B",
+        scrapDate: daysAgo(3), estimatedValue: 27000, status: "COMPLETED" as const,
+      },
+      claim: { claimingUserId: eve.id, status: "COMPLETED" as const, completedAt: daysAgo(8) },
+    },
+    {
+      offer: {
+        offeringUserId: carol.id, category: "ELECTRONICS" as const, subCategory: "Monitor",
+        itemName: "Dell UltraSharp U2722D 27″ 4K Monitors — 10 units",
+        description: "USB-C 90W charging. Near-mint. Full box sets with all cables. Replaced in office refresh.",
+        quantity: 10, condition: "LIKE_NEW" as const, location: "IT Storage, Bldg 5",
+        scrapDate: daysAgo(6), estimatedValue: 18000, status: "COMPLETED" as const,
+      },
+      claim: { claimingUserId: bob.id, status: "COMPLETED" as const, completedAt: daysAgo(7) },
+    },
+  ];
+
+  for (const { offer, claim } of completedItems) {
+    const created = await prisma.offer.create({ data: offer });
+    await prisma.claim.create({ data: { offerId: created.id, claimingUserId: claim.claimingUserId, status: claim.status, completedAt: claim.completedAt } });
+  }
+
+  return { skipped: false, users: users.length + 2, offers: offerData.length + premiumAvailable.length + claimedItems.length + completedItems.length };
 }
