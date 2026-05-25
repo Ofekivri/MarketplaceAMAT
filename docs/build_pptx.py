@@ -1,607 +1,604 @@
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Inches, Pt
-import copy
 
-# ── Brand colours ──────────────────────────────────────────────
-AMAT_BLUE   = RGBColor(0x00, 0x47, 0xAB)   # deep AMAT blue
-AMAT_DARK   = RGBColor(0x1A, 0x1A, 0x2E)   # near-black navy
-ACCENT      = RGBColor(0x00, 0xB4, 0xD8)   # bright cyan accent
-WHITE       = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_GREY  = RGBColor(0xF0, 0xF4, 0xF8)
-MID_GREY    = RGBColor(0x90, 0xA4, 0xAE)
-GREEN       = RGBColor(0x2E, 0x7D, 0x32)
-ORANGE      = RGBColor(0xE6, 0x5C, 0x00)
+# ── Colours ──────────────────────────────────────────────────
+AMAT_BLUE  = RGBColor(0x00, 0x47, 0xAB)
+AMAT_DARK  = RGBColor(0x1A, 0x1A, 0x2E)
+ACCENT     = RGBColor(0x00, 0xB4, 0xD8)
+WHITE      = RGBColor(0xFF, 0xFF, 0xFF)
+LIGHT_BLUE = RGBColor(0xBB, 0xDE, 0xFF)
+MID_GREY   = RGBColor(0x90, 0xA4, 0xAE)
+GREEN      = RGBColor(0x2E, 0x7D, 0x32)
+GREEN_L    = RGBColor(0x57, 0xCC, 0x99)
+ORANGE     = RGBColor(0xE6, 0x5C, 0x00)
+YELLOW     = RGBColor(0xFF, 0xCC, 0x00)
+DARK_CARD  = RGBColor(0x0D, 0x1B, 0x3E)
+DARK_CARD2 = RGBColor(0x12, 0x22, 0x4A)
+DARK_ROW   = RGBColor(0x1E, 0x3A, 0x5F)
 
 prs = Presentation()
 prs.slide_width  = Inches(13.33)
 prs.slide_height = Inches(7.5)
-
-BLANK = prs.slide_layouts[6]   # completely blank layout
+BLANK = prs.slide_layouts[6]
 
 # ══════════════════════════════════════════════════════════════
-# Helper utilities
+# Helpers
 # ══════════════════════════════════════════════════════════════
+def bg(slide, color=AMAT_DARK):
+    s = slide.shapes.add_shape(1, Inches(0), Inches(0),
+                               Inches(13.33), Inches(7.5))
+    s.fill.solid(); s.fill.fore_color.rgb = color
+    s.line.fill.background()
 
-def add_rect(slide, l, t, w, h, fill=None, line_color=None, line_width=Pt(0)):
-    shape = slide.shapes.add_shape(1, Inches(l), Inches(t), Inches(w), Inches(h))
-    shape.line.width = line_width
+def rect(slide, l, t, w, h, fill=None, border=None, bw=Pt(1)):
+    s = slide.shapes.add_shape(1, Inches(l), Inches(t), Inches(w), Inches(h))
     if fill:
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = fill
+        s.fill.solid(); s.fill.fore_color.rgb = fill
     else:
-        shape.fill.background()
-    if line_color:
-        shape.line.color.rgb = line_color
-        shape.line.width = line_width if line_width else Pt(1)
+        s.fill.background()
+    if border:
+        s.line.color.rgb = border; s.line.width = bw
     else:
-        shape.line.fill.background()
-    return shape
+        s.line.fill.background()
+    return s
 
-def add_textbox(slide, l, t, w, h, text, size=18, bold=False, color=WHITE,
-                align=PP_ALIGN.LEFT, wrap=True, italic=False):
+def tb(slide, l, t, w, h, text, size=20, bold=False, color=WHITE,
+       align=PP_ALIGN.LEFT, italic=False):
     txb = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
-    txb.word_wrap = wrap
-    tf = txb.text_frame
-    tf.word_wrap = wrap
-    p = tf.paragraphs[0]
-    p.alignment = align
-    run = p.add_run()
-    run.text = text
-    run.font.size = Pt(size)
-    run.font.bold = bold
-    run.font.italic = italic
-    run.font.color.rgb = color
+    txb.word_wrap = True
+    tf = txb.text_frame; tf.word_wrap = True
+    p = tf.paragraphs[0]; p.alignment = align
+    r = p.add_run(); r.text = text
+    r.font.size = Pt(size); r.font.bold = bold
+    r.font.italic = italic; r.font.color.rgb = color
     return txb
 
-def add_para(tf, text, size=14, bold=False, color=WHITE, align=PP_ALIGN.LEFT,
-             space_before=Pt(4), italic=False):
-    from pptx.util import Pt as PPt
-    p = tf.add_paragraph()
-    p.alignment = align
-    p.space_before = space_before
-    run = p.add_run()
-    run.text = text
-    run.font.size = Pt(size)
-    run.font.bold = bold
-    run.font.italic = italic
-    run.font.color.rgb = color
-    return p
+def add_para(tf, text, size=18, bold=False, color=WHITE,
+             align=PP_ALIGN.LEFT, space=Pt(6), italic=False):
+    p = tf.add_paragraph(); p.alignment = align; p.space_before = space
+    r = p.add_run(); r.text = text
+    r.font.size = Pt(size); r.font.bold = bold
+    r.font.italic = italic; r.font.color.rgb = color
 
-def slide_bg(slide, color=AMAT_DARK):
-    add_rect(slide, 0, 0, 13.33, 7.5, fill=color)
+def header(slide, title, sub=None):
+    rect(slide, 0, 0, 13.33, 1.4, fill=AMAT_BLUE)
+    rect(slide, 0, 1.4, 13.33, 0.07, fill=ACCENT)
+    tb(slide, 0.4, 0.1, 12.5, 0.82, title, size=36, bold=True, color=WHITE)
+    if sub:
+        tb(slide, 0.4, 0.88, 12.5, 0.48, sub, size=18, color=LIGHT_BLUE)
 
-def top_bar(slide, title, subtitle=None):
-    add_rect(slide, 0, 0, 13.33, 1.35, fill=AMAT_BLUE)
-    add_rect(slide, 0, 1.35, 13.33, 0.06, fill=ACCENT)
-    add_textbox(slide, 0.35, 0.12, 12.6, 0.7, title,
-                size=32, bold=True, color=WHITE)
-    if subtitle:
-        add_textbox(slide, 0.35, 0.78, 12.6, 0.5, subtitle,
-                    size=16, bold=False, color=RGBColor(0xBB, 0xDE, 0xFF))
+def foot(slide):
+    rect(slide, 0, 7.18, 13.33, 0.32, fill=AMAT_BLUE)
+    tb(slide, 0.3, 7.2, 12.7, 0.28,
+       "Applied Materials Israel  |  SecondLife  |  Confidential",
+       size=11, color=LIGHT_BLUE, align=PP_ALIGN.CENTER)
 
-def footer(slide, text="Applied Materials Israel  |  SecondLife  |  Confidential"):
-    add_rect(slide, 0, 7.15, 13.33, 0.35, fill=AMAT_BLUE)
-    add_textbox(slide, 0.3, 7.17, 12.7, 0.28, text,
-                size=10, color=RGBColor(0xBB, 0xDE, 0xFF), align=PP_ALIGN.CENTER)
-
-def card(slide, l, t, w, h, fill=RGBColor(0x0D, 0x1B, 0x3E),
-         border_color=ACCENT, border_width=Pt(1.5)):
-    add_rect(slide, l, t, w, h, fill=fill,
-             line_color=border_color, line_width=border_width)
+def card(slide, l, t, w, h, border=ACCENT, bw=Pt(1.5)):
+    rect(slide, l, t, w, h, fill=DARK_CARD, border=border, bw=bw)
 
 
 # ══════════════════════════════════════════════════════════════
 # SLIDE 1 — Title
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
+bg(sl)
+rect(sl, 0, 0, 0.1, 7.5, fill=ACCENT)
+rect(sl, 0.1, 0, 0.05, 7.5, fill=RGBColor(0x00, 0x80, 0xB0))
 
-# big gradient bar on left
-add_rect(sl, 0, 0, 0.08, 7.5, fill=ACCENT)
-add_rect(sl, 0.08, 0, 0.04, 7.5, fill=RGBColor(0x00, 0x80, 0xB0))
-
-# decorative circles
-for cx, cy, r, alpha_col in [
-    (11.5, 1.2, 2.5, RGBColor(0x00, 0x47, 0x80)),
-    (12.5, 5.5, 1.8, RGBColor(0x00, 0x30, 0x60)),
-]:
-    c = sl.shapes.add_shape(9, Inches(cx - r/2), Inches(cy - r/2),
+for cx, cy, r, col in [(11.5,1.2,2.5,RGBColor(0x00,0x47,0x80)),
+                        (12.5,5.5,1.8,RGBColor(0x00,0x30,0x60))]:
+    c = sl.shapes.add_shape(9, Inches(cx-r/2), Inches(cy-r/2),
                             Inches(r), Inches(r))
-    c.fill.solid(); c.fill.fore_color.rgb = alpha_col
-    c.line.fill.background()
+    c.fill.solid(); c.fill.fore_color.rgb = col; c.line.fill.background()
 
-add_textbox(sl, 0.6, 1.6, 11, 0.8,
-            "SecondLife", size=48, bold=True, color=ACCENT)
-add_textbox(sl, 0.6, 2.35, 11, 0.65,
-            "Internal Asset Redistribution Marketplace",
-            size=26, bold=False, color=WHITE)
-add_textbox(sl, 0.6, 3.05, 9, 0.45,
-            "Applied Materials Israel",
-            size=20, bold=False, color=RGBColor(0xBB, 0xDE, 0xFF))
+tb(sl, 0.7, 1.5, 11, 1.0, "SecondLife", size=56, bold=True, color=ACCENT)
+tb(sl, 0.7, 2.5, 11, 0.7, "Internal Asset Redistribution Marketplace",
+   size=28, color=WHITE)
+tb(sl, 0.7, 3.22, 9, 0.5, "Applied Materials Israel",
+   size=22, color=LIGHT_BLUE)
+rect(sl, 0.7, 3.82, 5.5, 0.06, fill=ACCENT)
+tb(sl, 0.7, 4.0, 9, 0.45, "IT Manager Briefing  ·  May 2026",
+   size=18, color=MID_GREY)
 
-add_rect(sl, 0.6, 3.6, 5.5, 0.05, fill=ACCENT)
-
-add_textbox(sl, 0.6, 3.8, 9, 0.4,
-            "IT Manager Briefing  ·  May 2026",
-            size=15, color=MID_GREY)
-
-add_textbox(sl, 0.6, 4.4, 10, 1.4,
-            "Presentation covers:\n"
-            "  Part 1  —  Why This System Is Necessary\n"
-            "  Part 2  —  What the System Does\n"
-            "  Part 4  —  Technical Requirements",
-            size=15, color=RGBColor(0xCC, 0xE5, 0xFF))
-
-footer(sl)
+tb(sl, 0.7, 4.65, 10, 1.6,
+   "Agenda:\n"
+   "  1.  What is this information system?\n"
+   "  2.  Why is it needed?\n"
+   "  3.  System overview & live demo\n"
+   "  4.  Technical requirements",
+   size=17, color=LIGHT_BLUE)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 2 — Part 1 : The Problem
+# SLIDE 2 — What is the information system?
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Part 1  —  Why This System Is Necessary",
-        "The problem we are solving")
+bg(sl)
+header(sl, "What Is SecondLife?", "Defining the information system")
 
-# 3 problem cards
-problems = [
-    ("No Central Visibility",
-     "When a department schedules an asset for disposal, no other department is automatically informed. Assets disappear silently."),
-    ("Value Lost to Scrap",
-     "Functional equipment worth tens of thousands of NIS is regularly discarded simply because no redistribution channel exists."),
-    ("Manual Processes Fail",
-     "Emails, WhatsApp, and spreadsheets have no photos, no workflow, no notifications, and no history. Coordination breaks down."),
+tb(sl, 0.45, 1.62, 12.4, 0.55,
+   "SecondLife is an internal web-based marketplace for Applied Materials Israel.",
+   size=22, bold=True, color=ACCENT)
+
+points = [
+    ("🏭", "Any department can post assets they no longer need — before they are scrapped or disposed of."),
+    ("🔍", "Other departments browse, search, and claim those assets — for free, within the organisation."),
+    ("📋", "A built-in workflow manages the full lifecycle: posting → notification → claim → pickup → completion."),
+    ("📊", "Every transfer is recorded, and each employee can see their personal impact in a live dashboard."),
 ]
 
-for i, (title, body) in enumerate(problems):
-    x = 0.35 + i * 4.32
-    card(sl, x, 1.6, 4.1, 4.6)
-    # icon number
-    add_rect(sl, x + 0.18, 1.8, 0.55, 0.55, fill=ACCENT)
-    add_textbox(sl, x + 0.18, 1.78, 0.55, 0.58,
-                str(i + 1), size=22, bold=True, color=AMAT_DARK,
-                align=PP_ALIGN.CENTER)
-    add_textbox(sl, x + 0.18, 2.45, 3.7, 0.5,
-                title, size=17, bold=True, color=ACCENT)
-    add_textbox(sl, x + 0.18, 3.0, 3.72, 2.9,
-                body, size=13, color=WHITE)
+for i, (icon, text) in enumerate(points):
+    y = 2.32 + i * 1.1
+    card(sl, 0.45, y, 12.4, 0.96)
+    tb(sl, 0.6, y + 0.18, 0.7, 0.6, icon, size=26, align=PP_ALIGN.CENTER)
+    tb(sl, 1.4, y + 0.15, 11.2, 0.7, text, size=20, color=WHITE)
 
-footer(sl)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 3 — Part 1 : Why Existing Tools Fail
+# SLIDE 3 — Why is it needed?
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Why Existing Tools Are Not Enough",
-        "Part 1 continued")
+bg(sl)
+header(sl, "Why Is This System Needed?", "The problem we are solving")
+
+problems = [
+    (ACCENT,   "No Visibility Across Departments",
+               "When a department schedules an asset for disposal, no one else is informed.\nFunctional equipment disappears silently."),
+    (ORANGE,   "Significant Financial Value Is Lost",
+               "Items worth ₪10,000 – ₪100,000+ are regularly scrapped while other\ndepartments could use them. There is no channel to prevent this."),
+    (YELLOW,   "Existing Tools Are Not Enough",
+               "Email, WhatsApp, and spreadsheets have no photos, no workflow, no\nnotifications, and no history. Coordination breaks down every time."),
+    (GREEN_L,  "No Way to Measure the Impact",
+               "There is currently no system to track how much value has been saved\nor lost — making it impossible to report results to management."),
+]
+
+for i, (col, title, body) in enumerate(problems):
+    col_i = i % 2
+    row_i = i // 2
+    x = 0.4 + col_i * 6.5
+    y = 1.62 + row_i * 2.62
+    card(sl, x, y, 6.2, 2.45, border=col)
+    rect(sl, x, y, 6.2, 0.52, fill=col)
+    tb(sl, x + 0.18, y + 0.07, 5.8, 0.42,
+       title, size=18, bold=True, color=AMAT_DARK)
+    tb(sl, x + 0.18, y + 0.65, 5.8, 1.65,
+       body, size=17, color=WHITE)
+
+foot(sl)
+
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 4 — Why Existing Tools Fail
+# ══════════════════════════════════════════════════════════════
+sl = prs.slides.add_slide(BLANK)
+bg(sl)
+header(sl, "Why Existing Tools Are Not Enough", "Part 1 — The problem continued")
 
 tools = [
-    ("📧  Email",         "No central visibility · No tracking · Buried in inboxes · No photos"),
-    ("💬  WhatsApp / Teams", "No history · No search · No formal workflow · Missed by latecomers"),
-    ("📊  Shared Spreadsheet", "No photos · No notifications · No lifecycle tracking · Manual updates"),
-    ("📋  Paper / Verbal",    "Zero traceability · No audit trail · Relies on knowing the right person"),
+    ("📧  Email",              "No central visibility  ·  No tracking  ·  Buried in inboxes  ·  No photos"),
+    ("💬  WhatsApp / Teams",   "No history  ·  No search  ·  No formal workflow  ·  Missed by latecomers"),
+    ("📊  Shared Spreadsheet", "No photos  ·  No notifications  ·  No lifecycle tracking  ·  Manual updates"),
+    ("📋  Paper / Verbal",     "Zero traceability  ·  No audit trail  ·  Relies on knowing the right person"),
 ]
 
-ROW_H = 0.9
 for i, (tool, why) in enumerate(tools):
-    y = 1.65 + i * (ROW_H + 0.18)
-    # alternating row shade
-    fill_c = RGBColor(0x0D, 0x1B, 0x3E) if i % 2 == 0 else RGBColor(0x12, 0x22, 0x4A)
-    add_rect(sl, 0.35, y, 12.6, ROW_H, fill=fill_c,
-             line_color=RGBColor(0x1E, 0x3A, 0x5F), line_width=Pt(1))
-    add_textbox(sl, 0.55, y + 0.12, 3.2, 0.65,
-                tool, size=15, bold=True, color=ACCENT)
-    add_textbox(sl, 3.9, y + 0.12, 9.0, 0.65,
-                why, size=14, color=WHITE)
+    y = 1.65 + i * 1.1
+    fill = DARK_CARD if i % 2 == 0 else DARK_CARD2
+    rect(sl, 0.4, y, 12.5, 0.98, fill=fill, border=DARK_ROW, bw=Pt(1))
+    tb(sl, 0.6, y + 0.15, 3.4, 0.68, tool, size=19, bold=True, color=ACCENT)
+    tb(sl, 4.1, y + 0.15, 8.6, 0.68, why, size=19, color=WHITE)
 
-# bottom callout
-add_rect(sl, 0.35, 5.35, 12.6, 1.0, fill=RGBColor(0x00, 0x47, 0x80),
-         line_color=ACCENT, line_width=Pt(1.5))
-add_textbox(sl, 0.6, 5.42, 12.2, 0.8,
-            "None of these tools support photos, automatic notifications, deadline tracking, "
-            "or a formal pickup workflow — the minimum needed for reliable redistribution.",
-            size=14, color=WHITE, italic=True)
-
-footer(sl)
+rect(sl, 0.4, 6.1, 12.5, 0.88, fill=RGBColor(0x00,0x3A,0x5C),
+     border=ACCENT, bw=Pt(1.5))
+tb(sl, 0.6, 6.17, 12.1, 0.72,
+   "None of these support photos, automatic notifications, deadline tracking,"
+   " or a formal pickup workflow.",
+   size=17, italic=True, color=WHITE, align=PP_ALIGN.CENTER)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 4 — Part 1 : 3 Business Benefits
+# SLIDE 5 — 3 Business Benefits
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "3 Key Business Benefits",
-        "Part 1 continued — the case for investment")
+bg(sl)
+header(sl, "3 Key Business Benefits", "The case for investment")
 
 benefits = [
-    ("💰", "Financial Savings",
-     [
-         "Assets with remaining useful life are redeployed internally",
-         "Reduces purchase of replacement equipment",
-         "Every item claimed = direct cost avoidance",
-         "Conservative estimate: ₪400k–₪1M saved per year",
-     ], ACCENT),
-    ("⚙️", "Operational Efficiency",
-     [
-         "Departments search and subscribe to categories they need",
-         "Automatic alerts when matching items are posted",
-         "Formal pickup coordination — no more chasing people",
-         "Full lifecycle audit trail per asset",
-     ], RGBColor(0x4C, 0xC9, 0xF0)),
-    ("🌱", "Sustainability / ESG",
-     [
-         "Reduces physical waste sent to disposal",
-         "Supports AMAT corporate sustainability goals",
-         "Items diverted from scrap = CO₂ and materials saved",
-         "Measurable impact dashboard per employee",
-     ], RGBColor(0x57, 0xCC, 0x99)),
+    ("💰", "Financial\nSavings", ACCENT,
+     ["Assets redeployed internally instead of scrapped",
+      "Reduces purchase of replacement equipment",
+      "Every item claimed = direct cost avoidance",
+      "Est. ₪400k – ₪1M saved per year"]),
+    ("⚙️", "Operational\nEfficiency", RGBColor(0x4C,0xC9,0xF0),
+     ["Departments subscribe to categories they need",
+      "Automatic alerts when matching items are posted",
+      "Formal pickup coordination — no chasing people",
+      "Full lifecycle audit trail per asset"]),
+    ("🌱", "Sustainability\n& ESG", GREEN_L,
+     ["Reduces physical waste sent to disposal",
+      "Supports AMAT corporate sustainability goals",
+      "Items diverted from scrap = CO₂ saved",
+      "Measurable dashboard per employee"]),
 ]
 
-for i, (icon, title, bullets, col) in enumerate(benefits):
-    x = 0.35 + i * 4.32
-    card(sl, x, 1.58, 4.1, 4.9, border_color=col)
-    add_textbox(sl, x + 0.2, 1.72, 3.7, 0.55,
-                f"{icon}  {title}", size=17, bold=True, color=col)
-    add_rect(sl, x + 0.2, 2.3, 3.5, 0.04, fill=col)
-    txb = sl.shapes.add_textbox(Inches(x + 0.2), Inches(2.42),
-                                Inches(3.72), Inches(3.8))
+for i, (icon, title, col, bullets) in enumerate(benefits):
+    x = 0.4 + i * 4.3
+    card(sl, x, 1.62, 4.1, 5.0, border=col)
+    tb(sl, x+0.2, 1.78, 0.7, 0.85, icon, size=32, align=PP_ALIGN.CENTER)
+    tb(sl, x+0.2, 2.58, 3.65, 0.75, title, size=20, bold=True, color=col)
+    rect(sl, x+0.2, 3.35, 3.5, 0.05, fill=col)
+
+    txb = sl.shapes.add_textbox(Inches(x+0.2), Inches(3.48),
+                                Inches(3.72), Inches(2.95))
     txb.word_wrap = True
-    tf = txb.text_frame
-    tf.word_wrap = True
+    tf = txb.text_frame; tf.word_wrap = True
     for j, b in enumerate(bullets):
         p = tf.paragraphs[0] if j == 0 else tf.add_paragraph()
-        p.space_before = Pt(5)
-        run = p.add_run()
-        run.text = f"→  {b}"
-        run.font.size = Pt(13)
-        run.font.color.rgb = WHITE
-
-footer(sl)
+        p.space_before = Pt(7)
+        r = p.add_run(); r.text = f"→  {b}"
+        r.font.size = Pt(16); r.font.color.rgb = WHITE
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 5 — Part 2 : System Overview
+# SLIDE 6 — System Overview
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Part 2  —  What the System Does",
-        "SecondLife — system overview")
+bg(sl)
+header(sl, "Part 2 — What the System Does", "SecondLife — system overview")
 
 features = [
-    ("Post an Asset",
-     "Any department can post surplus equipment with photos, specs, scrap deadline, and estimated value."),
-    ("Browse & Search",
-     "All employees can browse available items, filter by category, condition, and urgency."),
-    ("Claim an Item",
+    ("1", "Post an Asset",
+     "Any department posts surplus equipment with photos, specs, scrap deadline, and estimated value."),
+    ("2", "Browse & Search",
+     "All employees browse available items and filter by category, condition, and urgency."),
+    ("3", "Claim an Item",
      "A claimer reserves an item, triggering a formal pickup coordination workflow."),
-    ("Watchlist Alerts",
-     "Users save keyword searches and receive instant notifications when matching items are posted."),
-    ("Analytics Dashboard",
+    ("4", "Watchlist Alerts",
+     "Users save keyword searches and get instant notifications when matching items are posted."),
+    ("5", "Analytics Dashboard",
      "Each user sees their personal impact: value rehomed, items posted/claimed, department ranking."),
 ]
 
-for i, (title, desc) in enumerate(features):
-    col = 0 if i < 3 else 1
-    row = i if i < 3 else i - 3
-    x = 0.35 + col * 6.6
-    y = 1.62 + row * 1.72
-    w = 6.25 if col == 0 else 6.25
-    card(sl, x, y, 6.25, 1.55)
-    # number bubble
-    add_rect(sl, x + 0.15, y + 0.15, 0.45, 0.45, fill=ACCENT)
-    add_textbox(sl, x + 0.15, y + 0.13, 0.45, 0.48,
-                str(i + 1), size=16, bold=True,
-                color=AMAT_DARK, align=PP_ALIGN.CENTER)
-    add_textbox(sl, x + 0.72, y + 0.1, 5.3, 0.42,
-                title, size=15, bold=True, color=ACCENT)
-    add_textbox(sl, x + 0.72, y + 0.55, 5.35, 0.85,
-                desc, size=12, color=WHITE)
+for i, (num, title, desc) in enumerate(features):
+    col_i = i % 2; row_i = i // 2
+    if i == 4:
+        x, y, w = 0.4, 1.62 + 2 * 1.82, 12.5
+    else:
+        x = 0.4 + col_i * 6.55
+        y = 1.62 + row_i * 1.82
+        w = 6.25
 
-footer(sl)
+    card(sl, x, y, w, 1.65)
+    rect(sl, x+0.15, y+0.17, 0.52, 0.52, fill=ACCENT)
+    tb(sl, x+0.15, y+0.15, 0.52, 0.54, num, size=20, bold=True,
+       color=AMAT_DARK, align=PP_ALIGN.CENTER)
+    tb(sl, x+0.8, y+0.12, w-1.0, 0.44, title, size=19, bold=True, color=ACCENT)
+    tb(sl, x+0.8, y+0.6, w-1.0, 0.9, desc, size=17, color=WHITE)
+
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 6 — Part 2 : Core Workflow
+# SLIDE 7 — Core Workflow
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Core Workflow — From Post to Pickup",
-        "Part 2 continued")
+bg(sl)
+header(sl, "Core Workflow — From Post to Pickup", "Part 2 continued")
 
 steps = [
-    ("1", "Department\nhas surplus item",   AMAT_BLUE),
-    ("2", "Post to\nSecondLife",            AMAT_BLUE),
-    ("3", "System notifies\nwatchlist users", RGBColor(0x01, 0x67, 0x9C)),
-    ("4", "Another dept\nclaims the item",  RGBColor(0x01, 0x67, 0x9C)),
-    ("5", "Pickup\ncompleted",              GREEN),
-    ("6", "Value saved\nrecorded",          GREEN),
+    ("1", "Department\nhas surplus item",    AMAT_BLUE),
+    ("2", "Post to\nSecondLife",             AMAT_BLUE),
+    ("3", "System notifies\nwatchlist users",RGBColor(0x01,0x67,0x9C)),
+    ("4", "Another dept\nclaims the item",   RGBColor(0x01,0x67,0x9C)),
+    ("5", "Pickup\ncompleted",               GREEN),
+    ("6", "Value saved\nrecorded",           GREEN),
 ]
 
-BOX_W, BOX_H = 1.7, 1.4
-START_X, Y_POS = 0.55, 2.8
-GAP = (13.33 - 2 * START_X - len(steps) * BOX_W) / (len(steps) - 1)
+BW, BH = 1.72, 1.55
+SX, SY  = 0.5, 2.7
+GAP = (13.33 - 2*SX - len(steps)*BW) / (len(steps)-1)
 
 for i, (num, label, col) in enumerate(steps):
-    x = START_X + i * (BOX_W + GAP)
-    # arrow (except after last)
-    if i < len(steps) - 1:
-        ax = x + BOX_W + 0.05
-        add_rect(sl, ax, Y_POS + BOX_H / 2 - 0.05,
-                 GAP - 0.1, 0.1, fill=ACCENT)
-        # arrowhead triangle
-        tri = sl.shapes.add_shape(
-            5,  # right triangle
-            Inches(ax + GAP - 0.22), Inches(Y_POS + BOX_H / 2 - 0.15),
-            Inches(0.18), Inches(0.3))
+    x = SX + i*(BW+GAP)
+    if i < len(steps)-1:
+        ax = x+BW+0.05
+        rect(sl, ax, SY+BH/2-0.06, GAP-0.1, 0.12, fill=ACCENT)
+        tri = sl.shapes.add_shape(5, Inches(ax+GAP-0.24),
+                                  Inches(SY+BH/2-0.17),
+                                  Inches(0.2), Inches(0.34))
         tri.fill.solid(); tri.fill.fore_color.rgb = ACCENT
         tri.line.fill.background()
+    rect(sl, x, SY, BW, BH, fill=col, border=ACCENT, bw=Pt(1.5))
+    rect(sl, x, SY, BW, 0.42, fill=ACCENT)
+    tb(sl, x, SY+0.02, BW, 0.4, num, size=22, bold=True,
+       color=AMAT_DARK, align=PP_ALIGN.CENTER)
+    tb(sl, x+0.08, SY+0.5, BW-0.16, 0.95, label, size=15,
+       color=WHITE, align=PP_ALIGN.CENTER)
 
-    # box
-    add_rect(sl, x, Y_POS, BOX_W, BOX_H, fill=col,
-             line_color=ACCENT, line_width=Pt(1.5))
-    add_rect(sl, x, Y_POS, BOX_W, 0.38, fill=ACCENT)
-    add_textbox(sl, x, Y_POS + 0.02, BOX_W, 0.36,
-                num, size=20, bold=True,
-                color=AMAT_DARK, align=PP_ALIGN.CENTER)
-    add_textbox(sl, x + 0.08, Y_POS + 0.45, BOX_W - 0.16, 0.9,
-                label, size=13, bold=False,
-                color=WHITE, align=PP_ALIGN.CENTER)
-
-# outcome highlight
-add_rect(sl, 1.5, 4.55, 10.3, 0.85,
-         fill=RGBColor(0x00, 0x47, 0x60),
-         line_color=ACCENT, line_width=Pt(1.5))
-add_textbox(sl, 1.6, 4.62, 10.1, 0.72,
-            "Result:  Functional assets stay in use · Departments save budget · "
-            "The organisation measures its impact in real time",
-            size=14, color=WHITE, align=PP_ALIGN.CENTER, italic=True)
-
-footer(sl)
+rect(sl, 1.5, 4.6, 10.3, 0.88, fill=RGBColor(0x00,0x47,0x60),
+     border=ACCENT, bw=Pt(1.5))
+tb(sl, 1.65, 4.67, 10.0, 0.72,
+   "Result:  Assets stay in use  ·  Departments save budget  ·  "
+   "Organisation measures real-time impact",
+   size=16, italic=True, color=WHITE, align=PP_ALIGN.CENTER)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 7 — Part 4 : Infrastructure & Hosting
+# SLIDE 8 — Technical: Infrastructure
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Part 4  —  Technical Requirements",
-        "Infrastructure & Hosting")
+bg(sl)
+header(sl, "Part 3 — Technical Requirements", "Infrastructure & Hosting")
 
 rows = [
-    ("Hosting",       "Vercel (cloud)",                 "Vercel  OR  internal Node.js 22 server"),
-    ("Domain / URL",  "vercel.app subdomain",           "Internal domain  e.g. secondlife.amat.co.il"),
-    ("SSL / TLS",     "Vercel managed certificate",     "Required — Vercel or internal certificate"),
-    ("Network access","Public internet",                "VPN-only or internal network access preferred"),
+    ("Hosting",        "Vercel (cloud)",               "Vercel  OR  internal Node.js 22 server"),
+    ("Domain / URL",   "vercel.app subdomain",         "Internal domain — secondlife.amat.co.il"),
+    ("SSL / TLS",      "Vercel managed certificate",   "Required — Vercel or internal certificate"),
+    ("Network access", "Public internet",              "VPN-only or internal network (preferred)"),
 ]
 
-HEADER_Y = 1.62
-add_rect(sl, 0.35, HEADER_Y, 12.6, 0.5, fill=AMAT_BLUE)
-for col_x, label in [(0.5, "Component"), (4.0, "Current (MVP)"), (8.5, "Required for Production")]:
-    add_textbox(sl, col_x, HEADER_Y + 0.06, 3.8, 0.38,
-                label, size=14, bold=True, color=WHITE)
+HY = 1.65
+rect(sl, 0.4, HY, 12.5, 0.58, fill=AMAT_BLUE)
+for cx, lbl in [(0.6,"Component"),(4.2,"Current (MVP)"),(8.8,"Required for Production")]:
+    tb(sl, cx, HY+0.1, 3.8, 0.38, lbl, size=16, bold=True, color=WHITE)
 
 for i, (comp, cur, req) in enumerate(rows):
-    y = HEADER_Y + 0.5 + i * 0.78
-    fill_c = RGBColor(0x0D, 0x1B, 0x3E) if i % 2 == 0 else RGBColor(0x12, 0x22, 0x4A)
-    add_rect(sl, 0.35, y, 12.6, 0.72, fill=fill_c,
-             line_color=RGBColor(0x1E, 0x3A, 0x5F), line_width=Pt(1))
-    add_textbox(sl, 0.5, y + 0.1, 3.3, 0.52, comp,
-                size=13, bold=True, color=ACCENT)
-    add_textbox(sl, 4.0, y + 0.1, 4.3, 0.52, cur,
-                size=13, color=MID_GREY)
-    add_textbox(sl, 8.5, y + 0.1, 4.3, 0.52, req,
-                size=13, color=WHITE)
+    y = HY+0.58+i*0.9
+    fill = DARK_CARD if i%2==0 else DARK_CARD2
+    rect(sl, 0.4, y, 12.5, 0.84, fill=fill, border=DARK_ROW, bw=Pt(1))
+    tb(sl, 0.6, y+0.14, 3.4, 0.6, comp, size=17, bold=True, color=ACCENT)
+    tb(sl, 4.2, y+0.14, 4.4, 0.6, cur, size=17, color=MID_GREY)
+    tb(sl, 8.8, y+0.14, 4.0, 0.6, req, size=17, color=WHITE)
 
-# note box
-add_rect(sl, 0.35, 5.0, 12.6, 1.0,
-         fill=RGBColor(0x00, 0x3A, 0x5C),
-         line_color=ACCENT, line_width=Pt(1.5))
-add_textbox(sl, 0.55, 5.08, 12.2, 0.82,
-            "💡  The system is currently live on Vercel and can remain there (low cost, zero ops). "
-            "Migration to an internal server is possible if data residency is required.",
-            size=13, color=WHITE, italic=True)
-
-footer(sl)
+rect(sl, 0.4, 5.5, 12.5, 1.0, fill=RGBColor(0x00,0x3A,0x5C),
+     border=ACCENT, bw=Pt(1.5))
+tb(sl, 0.6, 5.58, 12.1, 0.82,
+   "💡  The system is live on Vercel today and can remain there ($20–50/month, zero ops). "
+   "Migration to an internal server is possible if data residency is required.",
+   size=16, italic=True, color=WHITE)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 8 — Part 4 : Database
+# SLIDE 9 — Technical: Database
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Technical Requirements — Database",
-        "Part 4 continued")
+bg(sl)
+header(sl, "Technical Requirements — Database", "Part 3 continued")
 
-# left column — specs
-card(sl, 0.35, 1.58, 5.9, 5.1)
-add_textbox(sl, 0.55, 1.72, 5.5, 0.42,
-            "Database Specifications", size=16, bold=True, color=ACCENT)
+card(sl, 0.4, 1.62, 5.9, 5.1)
+tb(sl, 0.6, 1.76, 5.5, 0.48, "Database Specifications",
+   size=19, bold=True, color=ACCENT)
 
-db_specs = [
+specs = [
     ("Engine",       "PostgreSQL 15+"),
-    ("Current",      "Neon (serverless PostgreSQL, cloud)"),
-    ("Alternatives", "AWS RDS  /  Azure DB for PostgreSQL  /  Internal server"),
-    ("Schema mgmt",  "Prisma ORM — migrations run automatically on deploy"),
-    ("Backup",       "Daily backup recommended; Neon: point-in-time recovery"),
-    ("Est. size",    "< 1 GB for first 3 years of normal usage"),
+    ("Current",      "Neon — serverless PostgreSQL (cloud)"),
+    ("Alternatives", "AWS RDS  /  Azure DB for PostgreSQL  /  Internal"),
+    ("Schema",       "Prisma ORM — auto-migrations on every deploy"),
+    ("Backup",       "Daily recommended; Neon: point-in-time recovery"),
+    ("Size (est.)",  "< 1 GB for first 3 years of use"),
 ]
+for i, (k, v) in enumerate(specs):
+    y = 2.35+i*0.72
+    tb(sl, 0.6, y, 1.95, 0.55, k+":", size=15, bold=True, color=ACCENT)
+    tb(sl, 2.6, y, 3.55, 0.55, v, size=15, color=WHITE)
 
-for i, (k, v) in enumerate(db_specs):
-    y = 2.22 + i * 0.7
-    add_textbox(sl, 0.55, y, 2.0, 0.55, k + ":", size=12, bold=True, color=ACCENT)
-    add_textbox(sl, 2.6, y, 3.5, 0.55, v, size=12, color=WHITE)
-
-# right column — schema tables
-card(sl, 6.55, 1.58, 6.43, 5.1)
-add_textbox(sl, 6.75, 1.72, 6.0, 0.42,
-            "Database Tables (Schema)", size=16, bold=True, color=ACCENT)
+card(sl, 6.55, 1.62, 6.38, 5.1)
+tb(sl, 6.75, 1.76, 5.9, 0.48, "Database Tables",
+   size=19, bold=True, color=ACCENT)
 
 tables = [
-    ("User",                    "Employee name, email, department, role"),
+    ("User",                    "Name, email, department, role"),
     ("Offer",                   "Asset details, photos, status, deadline, value"),
-    ("Claim",                   "Who claimed what, pickup status, completion date"),
+    ("Claim",                   "Who claimed what, pickup status, completion"),
     ("Notification",            "In-app inbox messages per user"),
     ("SearchSubscription",      "User's saved keyword watchlist"),
-    ("SearchSubscriptionMatch", "Which watchlist entry matched which offer"),
+    ("SearchSubscriptionMatch", "Which watchlist matched which offer"),
 ]
-
 for i, (tbl, desc) in enumerate(tables):
-    y = 2.22 + i * 0.7
-    add_rect(sl, 6.75, y + 0.06, 2.15, 0.42,
-             fill=AMAT_BLUE, line_color=ACCENT, line_width=Pt(1))
-    add_textbox(sl, 6.78, y + 0.07, 2.1, 0.4,
-                tbl, size=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_textbox(sl, 9.05, y + 0.08, 3.7, 0.42,
-                desc, size=11, color=MID_GREY)
-
-footer(sl)
+    y = 2.35+i*0.72
+    rect(sl, 6.75, y+0.06, 2.2, 0.48, fill=AMAT_BLUE, border=ACCENT, bw=Pt(1))
+    tb(sl, 6.77, y+0.09, 2.16, 0.4, tbl, size=13, bold=True,
+       color=WHITE, align=PP_ALIGN.CENTER)
+    tb(sl, 9.08, y+0.1, 3.7, 0.46, desc, size=14, color=MID_GREY)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 9 — Part 4 : Application Stack + Auth
+# SLIDE 10 — Technical: Stack + Auth
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Technical Requirements — App Stack & Authentication",
-        "Part 4 continued")
+bg(sl)
+header(sl, "Technical Requirements — App Stack & Authentication",
+       "Part 3 continued")
 
-# left: stack table
-card(sl, 0.35, 1.58, 6.0, 4.0)
-add_textbox(sl, 0.55, 1.72, 5.6, 0.42,
-            "Application Stack", size=16, bold=True, color=ACCENT)
+card(sl, 0.4, 1.62, 5.9, 4.12)
+tb(sl, 0.6, 1.76, 5.5, 0.45, "Application Stack",
+   size=19, bold=True, color=ACCENT)
 
 stack = [
-    ("Runtime",    "Node.js",    "22.x"),
-    ("Framework",  "Next.js",    "15.x  (React App Router)"),
-    ("Language",   "TypeScript", "5.6"),
-    ("ORM",        "Prisma",     "5.22"),
-    ("Styling",    "Tailwind CSS","3.4"),
-    ("Images",     "Sharp",      "0.33  (auto-compress to WebP)"),
-    ("Storage",    "Vercel Blob","or AWS S3 / Azure Blob"),
+    ("Runtime",   "Node.js",      "22.x"),
+    ("Framework", "Next.js",      "15.x  (React App Router)"),
+    ("Language",  "TypeScript",   "5.6"),
+    ("ORM",       "Prisma",       "5.22"),
+    ("Styling",   "Tailwind CSS", "3.4"),
+    ("Images",    "Sharp",        "Auto-compress → WebP"),
+    ("Storage",   "Vercel Blob",  "or AWS S3 / Azure Blob"),
 ]
-
-HDR_Y = 2.22
-add_rect(sl, 0.5, HDR_Y, 5.7, 0.38, fill=AMAT_BLUE)
-for cx, lbl in [(0.55, "Layer"), (2.05, "Technology"), (3.75, "Version / Note")]:
-    add_textbox(sl, cx, HDR_Y + 0.04, 1.6, 0.3, lbl,
-                size=11, bold=True, color=WHITE)
-
+SHY = 2.3
+rect(sl, 0.55, SHY, 5.6, 0.42, fill=AMAT_BLUE)
+for cx, lbl in [(0.6,"Layer"),(2.0,"Technology"),(3.7,"Version")]:
+    tb(sl, cx, SHY+0.06, 1.5, 0.3, lbl, size=13, bold=True, color=WHITE)
 for i, (layer, tech, ver) in enumerate(stack):
-    y = HDR_Y + 0.38 + i * 0.48
-    fill_c = RGBColor(0x0D, 0x1B, 0x3E) if i % 2 == 0 else RGBColor(0x12, 0x22, 0x4A)
-    add_rect(sl, 0.5, y, 5.7, 0.45, fill=fill_c,
-             line_color=RGBColor(0x1E, 0x3A, 0x5F), line_width=Pt(1))
-    add_textbox(sl, 0.55, y + 0.06, 1.4, 0.35, layer,
-                size=11, bold=True, color=ACCENT)
-    add_textbox(sl, 2.05, y + 0.06, 1.6, 0.35, tech,
-                size=11, color=WHITE)
-    add_textbox(sl, 3.75, y + 0.06, 2.3, 0.35, ver,
-                size=11, color=MID_GREY)
+    y = SHY+0.42+i*0.48
+    fill = DARK_CARD if i%2==0 else DARK_CARD2
+    rect(sl, 0.55, y, 5.6, 0.45, fill=fill, border=DARK_ROW, bw=Pt(1))
+    tb(sl, 0.6, y+0.07, 1.3, 0.35, layer, size=13, bold=True, color=ACCENT)
+    tb(sl, 2.0, y+0.07, 1.6, 0.35, tech, size=13, color=WHITE)
+    tb(sl, 3.7, y+0.07, 2.3, 0.35, ver, size=12, color=MID_GREY)
 
-# right: auth requirements
-card(sl, 6.65, 1.58, 6.33, 4.0, border_color=ORANGE)
-add_textbox(sl, 6.85, 1.72, 5.9, 0.42,
-            "Authentication — Action Required", size=16, bold=True, color=ORANGE)
+card(sl, 6.55, 1.62, 6.38, 4.12, border=ORANGE)
+tb(sl, 6.75, 1.76, 5.9, 0.45, "Authentication — Action Required",
+   size=19, bold=True, color=ORANGE)
+rect(sl, 6.75, 2.3, 5.9, 0.56, fill=RGBColor(0x3E,0x1A,0x00),
+     border=ORANGE, bw=Pt(1))
+tb(sl, 6.9, 2.36, 5.7, 0.44,
+   "⚠  Current: mock login — NOT for production",
+   size=15, bold=True, color=ORANGE)
 
-add_rect(sl, 6.85, 2.22, 5.9, 0.52,
-         fill=RGBColor(0x3E, 0x1A, 0x00),
-         line_color=ORANGE, line_width=Pt(1))
-add_textbox(sl, 6.95, 2.28, 5.7, 0.4,
-            "⚠  Current: mock login (demo only — not for production)",
-            size=12, bold=True, color=ORANGE)
-
-auth_reqs = [
-    ("TR-5.1", "Integrate with AMAT Israel Active Directory / LDAP"),
-    ("TR-5.2", "Recommended: SAML 2.0 or OAuth 2.0 SSO\n(same credentials as Windows / Outlook)"),
-    ("TR-5.3", "Department and role pulled from AD attributes automatically"),
-    ("TR-5.4", "Secure session management via NextAuth.js or similar"),
+auth = [
+    ("AD / LDAP", "Integrate with AMAT Israel Active Directory"),
+    ("SSO",       "SAML 2.0 or OAuth 2.0 — same login as Windows/Outlook"),
+    ("Dept/Role", "Pulled automatically from AD attributes"),
+    ("Session",   "Secure session management via NextAuth.js"),
 ]
+for i, (rid, req) in enumerate(auth):
+    y = 2.97+i*0.68
+    rect(sl, 6.75, y, 1.0, 0.48, fill=ORANGE)
+    tb(sl, 6.75, y+0.06, 1.0, 0.38, rid, size=13, bold=True,
+       color=AMAT_DARK, align=PP_ALIGN.CENTER)
+    tb(sl, 7.85, y+0.07, 5.0, 0.42, req, size=14, color=WHITE)
 
-for i, (rid, req) in enumerate(auth_reqs):
-    y = 2.85 + i * 0.68
-    add_rect(sl, 6.85, y, 0.72, 0.42, fill=ORANGE)
-    add_textbox(sl, 6.85, y + 0.03, 0.72, 0.38,
-                rid, size=10, bold=True,
-                color=AMAT_DARK, align=PP_ALIGN.CENTER)
-    add_textbox(sl, 7.65, y + 0.03, 5.2, 0.55,
-                req, size=11, color=WHITE)
-
-# bottom note
-add_rect(sl, 0.35, 5.7, 12.6, 0.88,
-         fill=RGBColor(0x00, 0x2A, 0x3A),
-         line_color=ACCENT, line_width=Pt(1.5))
-add_textbox(sl, 0.55, 5.78, 12.2, 0.72,
-            "💡  Email notifications (SMTP / Exchange relay) are also needed for deadline reminders "
-            "and claim confirmations. This requires SMTP server access from the IT team.",
-            size=13, color=WHITE, italic=True)
-
-footer(sl)
+rect(sl, 0.4, 5.82, 12.5, 0.88, fill=RGBColor(0x00,0x2A,0x3A),
+     border=ACCENT, bw=Pt(1.5))
+tb(sl, 0.6, 5.9, 12.1, 0.72,
+   "💡  SMTP / Exchange relay needed for email notifications (deadline reminders, claim confirmations).",
+   size=15, italic=True, color=WHITE)
+foot(sl)
 
 
 # ══════════════════════════════════════════════════════════════
-# SLIDE 10 — Summary / What IT Needs to Provide
+# SLIDE 11 — Summary: What IT Needs
 # ══════════════════════════════════════════════════════════════
 sl = prs.slides.add_slide(BLANK)
-slide_bg(sl, AMAT_DARK)
-top_bar(sl, "Summary — What IT Needs to Provide",
-        "Go-live checklist")
+bg(sl)
+header(sl, "Summary — What IT Needs to Provide", "Go-live checklist")
 
-it_needs = [
-    ("🔴  Critical",     ORANGE,
-     [
-         "PostgreSQL database instance (Neon / RDS / Azure / internal)",
-         "Internal domain + SSL certificate (e.g. secondlife.amat.co.il)",
-         "LDAP / Active Directory SSO integration",
-     ]),
-    ("🟡  Important",    RGBColor(0xFF, 0xCC, 0x00),
-     [
-         "SMTP relay or Exchange server access for email notifications",
-         "VPN / network access policy decision",
-         "Automated database backup schedule",
-     ]),
-    ("🟢  Nice to Have", RGBColor(0x57, 0xCC, 0x99),
-     [
-         "Admin panel for IT to manage users and moderate listings",
-         "Usage analytics for management reporting",
-         "Slack / Teams webhook integration for notifications",
-     ]),
+items = [
+    ("🔴  Critical",      ORANGE,
+     ["PostgreSQL database (Neon / RDS / Azure / internal)",
+      "Internal domain + SSL — secondlife.amat.co.il",
+      "LDAP / Active Directory SSO integration"]),
+    ("🟡  Important",     YELLOW,
+     ["SMTP / Exchange relay for email notifications",
+      "VPN / network access policy decision",
+      "Automated database backup schedule"]),
+    ("🟢  Nice to Have",  GREEN_L,
+     ["Admin panel to manage users and moderate posts",
+      "Usage analytics for management reporting",
+      "Slack / Teams webhook for notifications"]),
 ]
 
-for i, (label, col, items) in enumerate(it_needs):
-    x = 0.35 + i * 4.32
-    card(sl, x, 1.58, 4.1, 4.55, border_color=col)
-    add_textbox(sl, x + 0.18, 1.72, 3.7, 0.45,
-                label, size=15, bold=True, color=col)
-    add_rect(sl, x + 0.18, 2.2, 3.5, 0.04, fill=col)
-    txb = sl.shapes.add_textbox(Inches(x + 0.18), Inches(2.3),
-                                Inches(3.75), Inches(3.6))
+for i, (label, col, bullets) in enumerate(items):
+    x = 0.4+i*4.3
+    card(sl, x, 1.62, 4.1, 4.65, border=col)
+    tb(sl, x+0.2, 1.78, 3.7, 0.48, label, size=17, bold=True, color=col)
+    rect(sl, x+0.2, 2.3, 3.5, 0.05, fill=col)
+    txb = sl.shapes.add_textbox(Inches(x+0.2), Inches(2.42),
+                                Inches(3.75), Inches(3.65))
     txb.word_wrap = True
-    tf = txb.text_frame
-    tf.word_wrap = True
-    for j, item in enumerate(items):
+    tf = txb.text_frame; tf.word_wrap = True
+    for j, b in enumerate(bullets):
         p = tf.paragraphs[0] if j == 0 else tf.add_paragraph()
-        p.space_before = Pt(8)
-        run = p.add_run()
-        run.text = f"→  {item}"
-        run.font.size = Pt(12)
-        run.font.color.rgb = WHITE
+        p.space_before = Pt(10)
+        r = p.add_run(); r.text = f"→  {b}"
+        r.font.size = Pt(15); r.font.color.rgb = WHITE
 
-# ROI banner
-add_rect(sl, 0.35, 6.3, 12.6, 0.78,
-         fill=AMAT_BLUE,
-         line_color=ACCENT, line_width=Pt(2))
-add_textbox(sl, 0.55, 6.37, 12.2, 0.62,
-            "Expected ROI:  ₪400,000 – ₪1,000,000 saved per year  ·  "
-            "3–4 weeks to production once IT infrastructure is ready  ·  "
-            "Hosting cost ~$20–50 / month",
-            size=14, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+rect(sl, 0.4, 6.38, 12.5, 0.78, fill=AMAT_BLUE, border=ACCENT, bw=Pt(2))
+tb(sl, 0.6, 6.45, 12.1, 0.62,
+   "Expected ROI: ₪400,000 – ₪1,000,000 per year  ·  "
+   "3–4 weeks to production once infrastructure is ready  ·  "
+   "$20–50/month hosting cost",
+   size=15, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+foot(sl)
 
-footer(sl)
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 12 — Live Demo Transition
+# ══════════════════════════════════════════════════════════════
+sl = prs.slides.add_slide(BLANK)
+bg(sl, AMAT_DARK)
+rect(sl, 0, 0, 0.12, 7.5, fill=ACCENT)
+
+# big circle decoration
+c = sl.shapes.add_shape(9, Inches(7.5), Inches(-0.5), Inches(5.5), Inches(5.5))
+c.fill.solid(); c.fill.fore_color.rgb = RGBColor(0x00,0x47,0x80)
+c.line.fill.background()
+c2 = sl.shapes.add_shape(9, Inches(9.5), Inches(3.5), Inches(3.5), Inches(3.5))
+c2.fill.solid(); c2.fill.fore_color.rgb = RGBColor(0x00,0x30,0x60)
+c2.line.fill.background()
+
+tb(sl, 1.2, 1.8, 9, 0.6, "Now Moving To", size=28, color=LIGHT_BLUE)
+tb(sl, 1.2, 2.45, 9, 1.3, "Live Demo", size=72, bold=True, color=ACCENT)
+
+rect(sl, 1.2, 3.85, 6.0, 0.07, fill=ACCENT)
+
+tb(sl, 1.2, 4.05, 9.5, 0.55,
+   "We will now walk through the system live in the browser.",
+   size=22, color=WHITE)
+tb(sl, 1.2, 4.68, 9.5, 1.3,
+   "What you will see:\n"
+   "  →  Posting a new asset with photos\n"
+   "  →  Claiming an item and the notification flow\n"
+   "  →  The analytics & impact dashboard",
+   size=18, color=LIGHT_BLUE)
+foot(sl)
+
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 13 — Meeting Timeline
+# ══════════════════════════════════════════════════════════════
+sl = prs.slides.add_slide(BLANK)
+bg(sl)
+header(sl, "Meeting Agenda & Timing", "How long each stage takes")
+
+stages = [
+    ("01", "Introduction",             "What is SecondLife and why is it needed",        "5 min",  ACCENT),
+    ("02", "The Problem & Benefits",   "Current pain points and the business case",       "8 min",  RGBColor(0x4C,0xC9,0xF0)),
+    ("03", "System Overview",          "What the system does and the core workflow",      "7 min",  RGBColor(0x57,0xCC,0x99)),
+    ("04", "Live Demo",                "Full walkthrough in the browser — live",          "12 min", ORANGE),
+    ("05", "Technical Requirements",   "Infrastructure, database, authentication needs",  "8 min",  YELLOW),
+    ("06", "Q&A & Next Steps",         "Open discussion and decision on next steps",      "5 min",  GREEN_L),
+]
+
+TW = [0.62, 4.6, 5.6, 1.65]  # col widths
+TX = [0.4, 1.07, 5.72, 11.37]  # col x positions
+
+# header row
+rect(sl, 0.4, 1.62, 12.5, 0.5, fill=AMAT_BLUE)
+for x, lbl in zip(TX, ["#", "Stage", "Description", "Time"]):
+    tb(sl, x+0.08, 1.68, 1.5, 0.36, lbl, size=15, bold=True, color=WHITE)
+
+total_y = 1.62 + 0.5
+for i, (num, stage, desc, time, col) in enumerate(stages):
+    y = total_y + i * 0.82
+    fill = DARK_CARD if i % 2 == 0 else DARK_CARD2
+    rect(sl, 0.4, y, 12.5, 0.76, fill=fill, border=DARK_ROW, bw=Pt(1))
+    # number badge
+    rect(sl, TX[0], y+0.13, 0.52, 0.5, fill=col)
+    tb(sl, TX[0], y+0.13, 0.52, 0.5, num, size=14, bold=True,
+       color=AMAT_DARK, align=PP_ALIGN.CENTER)
+    tb(sl, TX[1]+0.08, y+0.15, 4.4, 0.5, stage, size=17, bold=True, color=col)
+    tb(sl, TX[2]+0.08, y+0.15, 5.5, 0.5, desc, size=15, color=MID_GREY)
+    tb(sl, TX[3]+0.08, y+0.15, 1.5, 0.5, time, size=17, bold=True,
+       color=WHITE, align=PP_ALIGN.CENTER)
+
+# total row
+total_y2 = total_y + len(stages) * 0.82
+rect(sl, 0.4, total_y2, 12.5, 0.48, fill=AMAT_BLUE)
+tb(sl, 0.6, total_y2+0.08, 10.5, 0.35,
+   "Total meeting time:", size=16, bold=True, color=WHITE)
+tb(sl, 11.2, total_y2+0.08, 1.5, 0.35,
+   "45 min", size=16, bold=True, color=ACCENT, align=PP_ALIGN.CENTER)
+foot(sl)
 
 
 # ── Save ──────────────────────────────────────────────────────
