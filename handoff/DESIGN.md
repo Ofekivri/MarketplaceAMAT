@@ -92,15 +92,14 @@ on `status: "AVAILABLE"`, and a unique constraint on `Claim.offerId` backs it
 up at the database level. The loser gets "Offer is not available". This is
 genuinely well built.
 
-### But cancelling a claim breaks the item
+### Cancelling returns the item to the market
 
-Verified against a live database: after a claim is cancelled, the offer returns
-to `AVAILABLE` and reappears on the dashboard, but the cancelled claim row is
-kept and the unique constraint on `offerId` rejects every future claim with a
-`P2002`, surfaced to the user as "Offer is not available". **A cancelled item
-looks claimable to everyone and can never be claimed again.** See
-`handoff/DATA_MODEL.md` for the two candidate fixes. This is the most
-significant functional defect found.
+Cancelling a claim deletes the claim row and sets the offer back to
+`AVAILABLE`, so anyone else can take it. This used to mark the row `CANCELLED`
+instead, which left the offer advertised as available but permanently
+unclaimable — the unique `offerId` rejected every later claim — and left the
+abandoned claim inflating the claimer's My Impact totals forever. Both are
+covered by regression tests.
 
 ## Owner-side lifecycle controls
 
@@ -164,5 +163,17 @@ A per-user dashboard, not a company report. Definitions, all from
 - `PICKUP_SCHEDULED` is a claim status nothing ever sets.
 - No audit log, rate limiting, or moderation path.
 - `estimatedValue` has no currency attached anywhere in the model.
-- No automated tests and no CI; `npm run lint` fails because the repository has
-  no ESLint configuration.
+
+## Test coverage
+
+`npm test` runs a Playwright suite against a real browser and a real database,
+covering the path the product depends on: claim, complete, cancel and re-claim,
+scrapping a claimed item, the ownership rules, and that two simultaneous claims
+cannot both succeed. The tests drive the actual UI and Server Actions rather
+than mocking them.
+
+Not covered: posting through the form including photo upload, watchlist
+matching, the overdue sweep, and the My Impact calculations beyond the two
+headline figures. Invoking a Server Action with a forged identity is also not
+covered — Next requires internal action-id headers — so the ownership checks
+inside `src/lib/actions.ts` are verified only through the interface.

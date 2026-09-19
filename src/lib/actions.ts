@@ -268,17 +268,12 @@ export async function markOfferScrappedAction(formData: FormData) {
       data: { status: "SCRAPPED", scrappedAt: new Date() },
     }),
   ];
-  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
-    ops.push(
-      prisma.claim.update({
-        where: { id: offer.claim.id },
-        data: { status: "CANCELLED" },
-      }) as never,
-    );
+  if (offer.claim && offer.claim.status !== "COMPLETED") {
+    ops.push(prisma.claim.delete({ where: { id: offer.claim.id } }) as never);
   }
   await prisma.$transaction(ops);
 
-  if (offer.claim && offer.claim.status !== "CANCELLED" && offer.claim.status !== "COMPLETED") {
+  if (offer.claim && offer.claim.status !== "COMPLETED") {
     await notify({
       userId: offer.claim.claimingUserId,
       title: `Offer scrapped: ${offer.itemName}`,
@@ -537,11 +532,12 @@ export async function cancelClaimAction(formData: FormData) {
     throw new Error("Cannot cancel a completed claim");
   }
 
+  // The claim row is deleted rather than marked cancelled. Claim.offerId is
+  // unique, so a retained row would reject every future claim on an offer that
+  // is advertised as available again — and it would keep counting towards the
+  // claimer's My Impact totals.
   await prisma.$transaction([
-    prisma.claim.update({
-      where: { id: offer.claim.id },
-      data: { status: "CANCELLED" },
-    }),
+    prisma.claim.delete({ where: { id: offer.claim.id } }),
     prisma.offer.update({
       where: { id: offerId },
       data: { status: "AVAILABLE" },

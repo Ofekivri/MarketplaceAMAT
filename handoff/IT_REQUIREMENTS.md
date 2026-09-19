@@ -138,8 +138,7 @@ has already been changed so the application can run anywhere:
 | Authentication / SSO | **Blocking** | No auth exists today |
 | Image storage implementation | **Blocking if photos are used** | One module to write once the target store is chosen |
 | Email notifications | Product gap | Notifications are in-app only; users must visit the site to learn anything. `src/lib/notify.ts` is the seam |
-| A defect in claim cancellation | Bug | Documented in `handoff/DATA_MODEL.md`; needs a decision before a pilot |
-| Automated tests and CI | Engineering hygiene | Neither exists today |
+| Test coverage gaps | Engineering hygiene | A Playwright suite and a GitHub Actions pipeline exist and cover the claim lifecycle; `handoff/DESIGN.md` lists what is not covered |
 | Data retention and privacy review | Compliance | The application stores employee names, emails and departments, and copies name and email into notification text |
 | Backup policy | Ops | Standard Postgres backups; the object store holds the photos and needs its own |
 

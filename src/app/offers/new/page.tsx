@@ -156,7 +156,8 @@ export default async function NewOfferPage() {
                 className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-container-lowest px-8 py-4 text-lg font-bold text-primary shadow-lg transition-all hover:scale-105 active:scale-95 disabled:hover:scale-100"
               />
               <p className="mt-4 text-xs text-white/70">
-                We'll notify colleagues whose watchlist matches this listing.
+                We&apos;ll notify colleagues whose watchlist matches this
+                listing.
               </p>
             </div>
           </div>

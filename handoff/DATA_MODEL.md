@@ -65,28 +65,27 @@ constraint on `offerId`; this is what makes concurrent claims safe.
 | `id` | String | Primary key, `cuid()` |
 | `offerId` → `Offer` | String | **Unique** — an offer can never have two claims |
 | `claimingUserId` → `User` | String | Cannot be the offer's owner |
-| `status` | String | `PENDING` \| `PICKUP_SCHEDULED` \| `COMPLETED` \| `CANCELLED` |
+| `status` | String | `PENDING` \| `COMPLETED` in practice — see below |
 | `notes` | String? | Optional message from the claimer to the owner |
 | `createdAt` / `updatedAt` | DateTime | |
 | `completedAt` | DateTime? | Set when pickup is confirmed |
 
-> **`PICKUP_SCHEDULED` is never written by any code path.** Claims are created
-> as `PENDING` and move to `COMPLETED` or `CANCELLED`. Two queries still read it,
-> so it is harmless, but it is an unimplemented state rather than a live one.
-> Either build the scheduling step or drop the value.
+**Cancelling deletes the claim row** rather than flagging it. That is load-bearing:
+`offerId` is unique, so a retained row would reject every later claim on an offer
+that had been put back on the market, and it would keep counting towards the
+claimer's My Impact totals. The same applies when an owner scraps a claimed item.
+Two tests in `tests/claim-cancellation.spec.ts` hold this in place; both were
+confirmed to fail against the previous behaviour.
 
-> **Known defect — cancelling a claim makes the offer permanently unclaimable.**
-> `cancelClaimAction` keeps the claim row and flips it to `CANCELLED`, then sets
-> the offer back to `AVAILABLE`. The offer reappears on the dashboard, but the
-> unique constraint on `offerId` means the next `claim.create` fails with a
-> Prisma `P2002`, which the catch block reports to the user as "Offer is not
-> available". So a cancelled item looks claimable to everyone and can never be
-> claimed again.
->
-> Both plausible fixes are small but they are different products: delete the
-> claim row on cancel (simple, loses the audit trail) or replace the unique
-> constraint with a partial index over live claims only (keeps history, needs a
-> migration). This has been left alone deliberately — pick one before a pilot.
+The practical consequence is that a claim row is only ever `PENDING` or
+`COMPLETED`. `PICKUP_SCHEDULED` is read by two queries but never written, and
+`CANCELLED` is no longer written at all — a few `!== "CANCELLED"` guards remain
+in the code as harmless belt-and-braces. Cancellation history is not kept in this
+table; the notification sent to the owner is the only durable trace. If an audit
+trail is required, that is a separate append-only log, not this column.
+
+A claim row is created only by claiming, and removed only by cancelling,
+scrapping the item, or deleting the offer.
 
 ## Notification
 

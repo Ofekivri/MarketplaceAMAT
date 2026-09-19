@@ -82,11 +82,9 @@ impact dashboard.
 
 - **Authentication.** `/login` is a dropdown of all users with no password.
 - **Email.** Notifications are in-app only; users learn nothing unless they visit.
-- **A claim-cancellation defect** leaves an item visible but permanently
-  unclaimable — see `handoff/DATA_MODEL.md`.
 - No admin role, audit log, rate limiting or moderation.
-- No tests, no CI, and no ESLint config (so `npm run lint` fails).
 - `estimatedValue` has no currency attached, yet drives every analytics figure.
+- `handoff/DESIGN.md` lists what the test suite does and does not cover.
 
 ## Running locally
 
@@ -103,6 +101,19 @@ Then open `/login` and pick a user. To wipe and reload demo data:
 `npm run db:reset`.
 
 Photo upload needs `BLOB_READ_WRITE_TOKEN`; everything else works without it.
+
+## Checks
+
+```bash
+npm run lint      # eslint, flat config
+npm run build     # includes a type check
+npm test          # Playwright, starts the app itself
+```
+
+`npm test` writes to the database in `DATABASE_URL`, so point it at a scratch
+one. It needs a browser: `npx playwright install chromium`, or set
+`CHROMIUM_PATH` to an existing Chrome where downloads are blocked. CI runs all
+three on every push (`.github/workflows/ci.yml`).
 
 ## Deployment
 

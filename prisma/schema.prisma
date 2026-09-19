@@ -51,7 +51,10 @@ model Claim {
   offer           Offer    @relation(fields: [offerId], references: [id])
   claimingUserId  String
   claimingUser    User     @relation("ClaimingUser", fields: [claimingUserId], references: [id])
-  status          String   @default("PENDING") // PENDING | PICKUP_SCHEDULED | COMPLETED | CANCELLED
+  // PENDING | COMPLETED. Cancelling deletes the row instead of marking it, so
+  // the unique offerId does not block re-claiming. PICKUP_SCHEDULED is read in
+  // a couple of queries but never written.
+  status          String   @default("PENDING")
   notes           String?
   createdAt       DateTime @default(now())
   completedAt     DateTime?
