@@ -1,7 +1,7 @@
 "use server";
 
-import { put, del } from "@vercel/blob";
 import sharp from "sharp";
+import { uploadImage, deleteImage } from "./storage";
 import { prisma } from "./db";
 import { requireUser, setCurrentUser } from "./session";
 import { notify } from "./notify";
@@ -27,17 +27,7 @@ async function uploadOfferImage(file: File, offerId: string): Promise<string> {
     .toBuffer();
 
   const key = `offers/${offerId}/${crypto.randomUUID()}.webp`;
-  // Support both BLOB_READ_WRITE_TOKEN and BLOB1_READ_WRITE_TOKEN (Vercel
-  // appends a number when the default name was already taken during store setup).
-  const token =
-    process.env.BLOB_READ_WRITE_TOKEN ??
-    process.env.BLOB1_READ_WRITE_TOKEN;
-  const { url } = await put(key, output, {
-    access: "public",
-    contentType: "image/webp",
-    token,
-  });
-  return url;
+  return uploadImage(key, output, "image/webp");
 }
 
 export async function createOfferAction(formData: FormData) {
@@ -437,7 +427,7 @@ export async function removeOfferImageAction(formData: FormData) {
 
   if (removed.startsWith("https://")) {
     try {
-      await del(removed);
+      await deleteImage(removed);
     } catch {
       // Legacy or already-deleted blob; don't block the UI.
     }

@@ -30,7 +30,6 @@ export async function seedDemoData(
         email: "alice@amat.example",
         name: "Alice Cohen",
         department: "Manufacturing B",
-        role: "poster",
       },
     }),
     prisma.user.create({
@@ -38,7 +37,6 @@ export async function seedDemoData(
         email: "bob@amat.example",
         name: "Bob Levi",
         department: "Procurement",
-        role: "claimer",
       },
     }),
     prisma.user.create({
@@ -46,7 +44,6 @@ export async function seedDemoData(
         email: "carol@amat.example",
         name: "Carol Mizrahi",
         department: "Maintenance",
-        role: "poster",
       },
     }),
     prisma.user.create({
@@ -54,7 +51,6 @@ export async function seedDemoData(
         email: "dan@amat.example",
         name: "Dan Peretz",
         department: "Operations",
-        role: "claimer",
       },
     }),
     prisma.user.create({
@@ -62,7 +58,6 @@ export async function seedDemoData(
         email: "eve@amat.example",
         name: "Eve Shapira",
         department: "R&D",
-        role: "claimer",
       },
     }),
   ]);

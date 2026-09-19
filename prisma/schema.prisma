@@ -12,7 +12,6 @@ model User {
   email               String               @unique
   name                String
   department          String
-  role                String               @default("claimer") // viewer | claimer | poster
   offers              Offer[]              @relation("OfferingUser")
   claims              Claim[]              @relation("ClaimingUser")
   notifications       Notification[]

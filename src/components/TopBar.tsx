@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserSwitcherButton } from "./UserSwitcherButton";
 
-type User = { id: string; name: string; department: string; role: string };
+type User = { id: string; name: string; department: string };
 
 type Props = {
   user: User | null;

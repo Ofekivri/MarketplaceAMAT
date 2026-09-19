@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { switchUserAction } from "@/lib/actions";
 
-type User = { id: string; name: string; department: string; role: string };
+type User = { id: string; name: string; department: string };
 
 export function UserSwitcherButton({
   current,

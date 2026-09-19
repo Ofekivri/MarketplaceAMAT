@@ -7,12 +7,12 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --accept-data-loss && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
-    "db:push": "prisma db push",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
-    "seed": "tsx prisma/seed.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
+    "seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

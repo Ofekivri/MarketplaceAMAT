@@ -10,7 +10,11 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      {
+        protocol: "https",
+        hostname:
+          process.env.IMAGE_HOST ?? "*.public.blob.vercel-storage.com",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },
