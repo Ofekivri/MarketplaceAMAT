@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { prisma, makeUser, makeOffer, loginAs } from "./helpers";
+import { prisma, makeUser, makeOffer, loginAs, claimOnPage } from "./helpers";
 
 // Authorization here is ownership-based: there are no roles. These tests pin
 // that down, because the checks live in Server Actions rather than in a
@@ -51,8 +51,7 @@ test("a claim cannot be cancelled by anyone but the claimer", async ({
 
   await loginAs(page, claimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   // Neither the owner nor an unrelated user is shown a cancel control.
   for (const user of [owner, stranger]) {

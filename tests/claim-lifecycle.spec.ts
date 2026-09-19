@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { prisma, makeUser, makeOffer, loginAs } from "./helpers";
+import { prisma, makeUser, makeOffer, loginAs, claimOnPage } from "./helpers";
 
 test.afterAll(async () => {
   await prisma.$disconnect();
@@ -14,8 +14,7 @@ test("an offer can be claimed and completed, notifying both sides", async ({
 
   await loginAs(page, claimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   const claimed = await prisma.offer.findUniqueOrThrow({
     where: { id: offer.id },
@@ -35,9 +34,18 @@ test("an offer can be claimed and completed, notifying both sides", async ({
     .poll(() => prisma.notification.count({ where: { userId: claimer.id } }))
     .toBeGreaterThan(0);
 
+  // Reload rather than relying on whatever the post-claim navigation left on
+  // screen, so this half of the test is about completing and nothing else.
+  await page.goto(`/offers/${offer.id}`);
+  await page.waitForLoadState("networkidle");
   page.on("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "I Received This Item" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?completed=1`);
+  await expect
+    .poll(async () => {
+      const o = await prisma.offer.findUniqueOrThrow({ where: { id: offer.id } });
+      return o.status;
+    })
+    .toBe("COMPLETED");
 
   const completed = await prisma.offer.findUniqueOrThrow({
     where: { id: offer.id },

@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { prisma, makeUser, makeOffer, loginAs, impactOf } from "./helpers";
+import {
+  prisma,
+  makeUser,
+  makeOffer,
+  loginAs,
+  impactOf,
+  claimOnPage,
+} from "./helpers";
 
 // Both tests here cover defects that shipped once. Cancelling a claim used to
 // keep the claim row and merely flag it CANCELLED, which left the offer
@@ -18,8 +25,7 @@ test("a cancelled item can be claimed by someone else", async ({ page }) => {
 
   await loginAs(page, firstClaimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   await page.goto("/claims");
   await page.getByRole("button", { name: "Cancel" }).first().click();
@@ -34,8 +40,7 @@ test("a cancelled item can be claimed by someone else", async ({ page }) => {
   await page.context().clearCookies();
   await loginAs(page, secondClaimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   const result = await prisma.offer.findUniqueOrThrow({
     where: { id: offer.id },
@@ -57,8 +62,7 @@ test("a cancelled claim stops counting towards My Impact", async ({ page }) => {
 
   await loginAs(page, claimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   expect(await impactOf(claimer.id)).toEqual({
     claimedCount: 1,
@@ -83,8 +87,7 @@ test("scrapping a claimed item clears the claim rather than stranding it", async
 
   await loginAs(page, claimer.id);
   await page.goto(`/offers/${offer.id}`);
-  await page.getByRole("button", { name: "Claim this" }).click();
-  await page.waitForURL(`**/offers/${offer.id}?claimed=1`);
+  await claimOnPage(page, offer.id);
 
   // The owner scraps it anyway, through the real owner-side control.
   await page.context().clearCookies();

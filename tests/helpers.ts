@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 
 export const prisma = new PrismaClient();
@@ -50,6 +50,24 @@ export async function loginAs(page: Page, userId: string) {
       sameSite: "Lax",
     },
   ]);
+}
+
+/**
+ * Claims the offer currently on screen and waits until it has actually landed.
+ *
+ * Waiting on the outcome in the database rather than on the URL is deliberate:
+ * the success banner strips its own query parameter once it fades, so
+ * `?claimed=1` is a transient the test would be racing.
+ */
+export async function claimOnPage(page: Page, offerId: string) {
+  const button = page.getByRole("button", { name: "Claim this" });
+  await expect(button).toBeVisible();
+  // Clicking mid-hydration submits the form twice: once natively and once
+  // through React. The second submission finds the offer already claimed and
+  // renders an error page.
+  await page.waitForLoadState("networkidle");
+  await button.click();
+  await expect.poll(() => prisma.claim.count({ where: { offerId } })).toBe(1);
 }
 
 /**
