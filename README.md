@@ -19,7 +19,7 @@ LDAP/SSO and real email (SendGrid/Nodemailer) are intentionally deferred — `sr
 ```bash
 docker compose up -d        # starts Postgres on localhost:5432
 npm install
-npx prisma db push          # create the schema
+npx prisma migrate deploy   # create the schema
 npm run seed                # 5 demo users + 3 sample offers
 npm run dev                 # http://localhost:3000
 ```
