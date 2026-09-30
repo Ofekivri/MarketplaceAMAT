@@ -13,10 +13,15 @@ export async function seedDemoData(
   opts: SeedOptions = {},
 ) {
   if (opts.reset) {
-    await prisma.notification.deleteMany();
-    await prisma.claim.deleteMany();
-    await prisma.offer.deleteMany();
-    await prisma.user.deleteMany();
+    // Saved searches reference users, so they go first (their matches cascade).
+    // One transaction, so a failure cannot leave the database half wiped.
+    await prisma.$transaction([
+      prisma.searchSubscription.deleteMany(),
+      prisma.notification.deleteMany(),
+      prisma.claim.deleteMany(),
+      prisma.offer.deleteMany(),
+      prisma.user.deleteMany(),
+    ]);
   } else {
     const existing = await prisma.user.count();
     if (existing > 0) {
